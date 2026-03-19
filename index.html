@@ -59,9 +59,24 @@
 
             const obliqueResponse = await fetch(encodedObliqueCall);
             const obliqueData = await obliqueResponse.json();
+            let obliqueImages = "";
+            const obliqueItems = obliqueData.results[0].value
+            console.log('Oblique API Response:', obliqueItems );
+            for (let feature in obliqueItems) {
+                console.log('Oblique Item:', feature);
+                if (obliqueItems[feature].S3URL) {
+                    console.log('Oblique Thumbnail URL:', obliqueItems[feature].S3URL);
+                    const imageUrl = encodeURIComponent(obliqueItems[feature].S3URL);
+                    obliqueImages += `<img src="https://6hp4guqpwe.execute-api.us-west-2.amazonaws.com/cog/preview/200x200.jpg?url=${imageUrl}&max_size=100" alt="${obliqueItems[feature].ShotID}" title="${obliqueItems[feature].ShotID}" style="max-width: 200px; margin: 5px;">`;
+                } else {
+                    console.log('No thumbnail available for this Oblique item.');
+                    obliqueImages += `<img src="https://placehold.co/200" alt="${obliqueItems[feature].ShotID}" title="${obliqueItems[feature].ShotID}" style="max-width: 200px; margin: 5px;">`;
+                }
+            }
+            
             console.log('Oblique Centroids:', obliqueData);
             clearInterval(searchThingy);
-            outputDiv.innerHTML = stacHtml + `<h2>Closest Oblique Centroids:</h2><pre>${JSON.stringify(obliqueData, null, 2)}</pre>`;
+            outputDiv.innerHTML = stacHtml + `<h2>Closest Oblique Centroids:</h2><div>${obliqueImages}</div><pre>${JSON.stringify(obliqueData, null, 2)}</pre>`;
         });
 
         function updateSearch(element) {
