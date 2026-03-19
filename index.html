@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>catalog explorer</title>
+</head>
+<body>
+
+    <div id="input-cords">
+        <h1>Enter coords for some place in Kentucky</h1>
+        <label for="latitude">Latitude:</label>
+        <input type="text" id="latitude" name="latitude" value="38.0"> 
+        <label for="longitude">Longitude:</label>
+        <input type="text" id="longitude" name="longitude" value="-84.5"><br>
+        <button id="submit-btn">Submit</button>
+    </div>
+    <div id="output">
+
+    </div>
+    <script>
+        const submitBtn = document.getElementById('submit-btn');
+        const outputDiv = document.getElementById('output');
+        const latInput = document.getElementById('latitude');
+        const lonInput = document.getElementById('longitude');
+        const stacApi = 'https://spved5ihrl.execute-api.us-west-2.amazonaws.com';
+        const obliqueApi = 'https://kygisserver.ky.gov/arcgis/rest/services/Temp_Services/GetObliqueCentroids/GPServer/GetObliqueCentroids';
+        let searchThingy = null;
+
+        submitBtn.addEventListener('click', async () => {
+            outputDiv.innerHTML = "Searching for data";
+            updateSearch(outputDiv);
+
+            const lat = parseFloat(latInput.value);
+            const lon = parseFloat(lonInput.value);
+
+            // Fetch STAC Items
+            const staccall = `search?intersects={"type":"Point","coordinates":[${lon},${lat}]}`;
+            const encodedStacCall = `${stacApi}/${staccall}`;
+
+            const stacResponse = await fetch(encodedStacCall);
+            const stacData = await stacResponse.json();
+            let images = "";
+            const stacItems = stacData.features.forEach(feature => {
+                console.log('STAC Item:', feature);
+                if (feature.assets.thumbnail) {
+                    const imageUrl = feature.assets.thumbnail.href;
+                    images += `<img src="${imageUrl}" alt="${feature.id}" title="${feature.id}" style="max-width: 200px; margin: 5px;">`;
+                } else {
+                    console.log('No thumbnail available for this STAC item.');
+                    images += `<img src="https://placehold.co/200" alt="${feature.id}" title="${feature.id}" style="max-width: 200px; margin: 5px;">`;
+                }
+            });
+            const stacHtml = `<h2>STAC Items:</h2><div>${images}</div>`;
+
+            // Fetch Oblique Centroids
+            const obliqueCall = `execute?latitude=${lat}&longitude=${lon}&f=json`;
+            const encodedObliqueCall = `${obliqueApi}/${obliqueCall}`;
+
+            const obliqueResponse = await fetch(encodedObliqueCall);
+            const obliqueData = await obliqueResponse.json();
+            console.log('Oblique Centroids:', obliqueData);
+            clearInterval(searchThingy);
+            outputDiv.innerHTML = stacHtml + `<h2>Closest Oblique Centroids:</h2><pre>${JSON.stringify(obliqueData, null, 2)}</pre>`;
+        });
+
+        function updateSearch(element) {
+            let elementText = element.innerHTML;
+            searchThingy = setInterval(() => {
+                elementText += ".";
+                element.innerHTML = elementText;
+            }, 200);
+        }
+    </script>
+</body>
+</html>
