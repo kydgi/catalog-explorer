@@ -803,18 +803,6 @@ const baseMap = L.esri.tiledMapLayer({
             ? `<img class="card-thumb" src="${thumbSrc}" alt="${feature.id}" loading="lazy">`
             : `<div class="card-thumb-placeholder">&#9974;</div>`;
 
-        // Export image + world file download links
-        const serviceName = services[feature.collection];
-        let exportLinks = '';
-        if (feature.bbox && serviceName) {
-            const pixelSizeFt = nativeResolutionFt[feature.collection] || 2;
-            const { url, tfw, width, height } = exportImageService(feature.bbox, 'ElevationServices', serviceName, pixelSizeFt);
-            const tfwDataUri = `data:text/plain;charset=utf-8,${encodeURIComponent(tfw)}`;
-            exportLinks = `
-                <a class="dl-link" href="${url}" target="_blank" rel="noopener">&#8595; TIFF</a>
-                <a class="dl-link" href="${tfwDataUri}" download="${feature.id}.tfw">&#8595; TFW</a>`;
-        }
-
         return `<div class="card">
             ${thumb}
             <div class="card-body">
@@ -828,10 +816,7 @@ const baseMap = L.esri.tiledMapLayer({
                     ${attrRow('EPSG', p['proj:epsg'] ?? 3089)}
                     ${attrRow('Cloud %', p['eo:cloud_cover'] != null ? p['eo:cloud_cover'] + '%' : null)}
                 </div>
-                <div class="card-downloads">
-                    ${exportLinks}
-                    ${downloadLinks(feature.assets)}
-                </div>
+                ${downloadLinks(feature.assets)}
             </div>
         </div>`;
     }
