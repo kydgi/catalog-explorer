@@ -3,89 +3,986 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>catalog explorer</title>
+    <title>KY DGI Catalog Explorer</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Dosis:wght@400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: 'Dosis', sans-serif;
+            background: #1f2937;
+            color: #f3f4f6;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* ── Header ── */
+        header {
+            background: #111827;
+            border-bottom: 2px solid #00a651;
+            padding: 0 24px;
+            z-index: 1000;
+            position: relative;
+        }
+
+        .header-brand {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            padding: 14px 0 10px;
+            border-bottom: 1px solid #374151;
+        }
+
+        .brand-badge {
+            background: #00a651;
+            color: #fff;
+            font-size: 18px;
+            font-weight: 700;
+            padding: 4px 10px;
+            border-radius: 4px;
+            letter-spacing: 1px;
+        }
+
+        .brand-text { display: flex; flex-direction: column; line-height: 1.2; }
+        .brand-title { font-size: 16px; font-weight: 700; color: #f3f4f6; }
+        .brand-subtitle { font-size: 13px; font-weight: 400; color: #9ca3af; }
+
+        .header-controls {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 12px 0;
+            flex-wrap: wrap;
+        }
+
+        .coord-group { display: flex; align-items: center; gap: 6px; }
+
+        .coord-group label {
+            font-size: 13px;
+            font-weight: 700;
+            color: #9ca3af;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .coord-group input {
+            background: #1f2937;
+            border: 1px solid #374151;
+            color: #f3f4f6;
+            font-family: 'Dosis', sans-serif;
+            font-size: 14px;
+            font-weight: 600;
+            padding: 6px 10px;
+            border-radius: 4px;
+            width: 120px;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        .coord-group input:focus { border-color: #00a651; }
+        .separator { color: #4b5563; font-size: 18px; }
+
+        #submit-btn {
+            background: #00a651;
+            color: #fff;
+            border: none;
+            font-family: 'Dosis', sans-serif;
+            font-size: 14px;
+            font-weight: 700;
+            padding: 7px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            letter-spacing: 0.5px;
+            transition: background 0.2s;
+        }
+
+        #submit-btn:hover   { background: #047857; }
+        #submit-btn:active  { background: #064e3b; }
+        #submit-btn:disabled { background: #374151; color: #6b7280; cursor: not-allowed; }
+
+        /* ── Map ── */
+        #map {
+            width: 100%;
+            height: 320px;
+            cursor: crosshair;
+            flex-shrink: 0;
+        }
+
+        #map-resize-handle {
+            width: 100%;
+            height: 6px;
+            background: #374151;
+            cursor: ns-resize;
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.15s;
+        }
+
+        #map-resize-handle:hover,
+        #map-resize-handle.dragging { background: #00a651; }
+
+        #map-resize-handle::after {
+            content: '';
+            width: 32px;
+            height: 2px;
+            background: currentColor;
+            border-radius: 1px;
+            opacity: 0.5;
+        }
+
+        .map-hint {
+            position: absolute;
+            bottom: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(17,24,39,0.85);
+            color: #9ca3af;
+            font-family: 'Dosis', sans-serif;
+            font-size: 12px;
+            font-weight: 600;
+            padding: 4px 12px;
+            border-radius: 10px;
+            pointer-events: none;
+            z-index: 500;
+            white-space: nowrap;
+        }
+
+        /* ── Status bar ── */
+        #status-bar {
+            background: #0d1117;
+            border-bottom: 1px solid #374151;
+            padding: 8px 24px;
+            font-size: 13px;
+            font-weight: 600;
+            color: #9ca3af;
+            min-height: 34px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            z-index: 1;
+            position: relative;
+        }
+
+        .spinner {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border: 2px solid #374151;
+            border-top-color: #00a651;
+            border-radius: 50%;
+            animation: spin 0.7s linear infinite;
+            flex-shrink: 0;
+        }
+
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* ── Main content ── */
+        main { flex: 1; padding: 24px; }
+
+        .section-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 16px;
+        }
+
+        .section-title { font-size: 16px; font-weight: 700; color: #f3f4f6; }
+
+        .count-badge {
+            background: #374151;
+            color: #9ca3af;
+            font-size: 12px;
+            font-weight: 700;
+            padding: 2px 8px;
+            border-radius: 10px;
+        }
+
+        section + section { margin-top: 36px; }
+
+        /* ── Card grid ── */
+        .card-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+            gap: 16px;
+        }
+
+        .card {
+            background: #111827;
+            border: 1px solid #374151;
+            border-radius: 8px;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            transition: border-color 0.2s, transform 0.15s;
+        }
+
+        .card:hover {
+            border-color: #00a651;
+            transform: translateY(-2px);
+        }
+
+        .card-thumb {
+            width: 100%;
+            aspect-ratio: 1;
+            object-fit: cover;
+            background: #1e293b;
+            display: block;
+        }
+
+        .card-thumb-placeholder {
+            width: 100%;
+            aspect-ratio: 1;
+            background: #1e293b;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #4b5563;
+            font-size: 28px;
+        }
+
+        .card-body {
+            padding: 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            flex: 1;
+        }
+
+        .card-title {
+            font-size: 13px;
+            font-weight: 700;
+            color: #f3f4f6;
+            word-break: break-all;
+            line-height: 1.3;
+        }
+
+        .card-collection {
+            display: inline-block;
+            font-size: 11px;
+            font-weight: 700;
+            padding: 2px 8px;
+            border-radius: 10px;
+            letter-spacing: 0.4px;
+            align-self: flex-start;
+        }
+
+        .tag-laz     { background: #064e3b; color: #34d399; }
+        .tag-dem     { background: #1e3a5f; color: #60a5fa; }
+        .tag-oblique { background: #4a1942; color: #f0abfc; }
+
+        .card-attrs { display: flex; flex-direction: column; gap: 4px; }
+
+        .attr-row { display: flex; justify-content: space-between; gap: 8px; }
+
+        .attr-label {
+            color: #6b7280;
+            font-weight: 700;
+            text-transform: uppercase;
+            font-size: 11px;
+            white-space: nowrap;
+        }
+
+        .attr-value {
+            color: #d1d5db;
+            font-weight: 600;
+            font-size: 12px;
+            text-align: right;
+            word-break: break-all;
+        }
+
+        /* ── Download links ── */
+        .card-downloads {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin-top: 4px;
+            padding-top: 8px;
+            border-top: 1px solid #374151;
+        }
+
+        .dl-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            background: #1f2937;
+            border: 1px solid #374151;
+            color: #60a5fa;
+            font-family: 'Dosis', sans-serif;
+            font-size: 11px;
+            font-weight: 700;
+            padding: 3px 8px;
+            border-radius: 4px;
+            text-decoration: none;
+            letter-spacing: 0.3px;
+            transition: background 0.15s, border-color 0.15s;
+        }
+
+        .dl-link:hover { background: #1e3a5f; border-color: #60a5fa; }
+
+        /* ── Empty / error ── */
+        .empty-state { color: #6b7280; font-size: 14px; padding: 20px 0; }
+
+        /* ── Debug section ── */
+        .debug-section {
+            margin-top: 48px;
+            padding-top: 24px;
+            border-top: 2px solid #374151;
+        }
+
+        .debug-section .section-header { margin-bottom: 12px; }
+
+        .debug-panel {
+            background: #0d1117;
+            border: 1px solid #374151;
+            border-radius: 8px;
+            overflow: hidden;
+            margin-bottom: 12px;
+        }
+
+        .debug-panel > summary {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 14px;
+            cursor: pointer;
+            font-weight: 700;
+            font-size: 13px;
+            color: #9ca3af;
+            background: #111827;
+            border-bottom: 1px solid #374151;
+            list-style: none;
+            user-select: none;
+        }
+
+        .debug-panel > summary::-webkit-details-marker { display: none; }
+        .debug-panel > summary::before {
+            content: '▶';
+            font-size: 10px;
+            color: #4b5563;
+            transition: transform 0.15s;
+        }
+        .debug-panel[open] > summary::before { transform: rotate(90deg); }
+
+        .json-tree {
+            padding: 10px 16px;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 12px;
+            line-height: 1.7;
+            color: #d1d5db;
+            overflow-x: auto;
+        }
+
+        .jt-node > summary {
+            cursor: pointer;
+            list-style: none;
+            user-select: none;
+            padding: 1px 2px;
+            border-radius: 3px;
+            display: flex;
+            align-items: baseline;
+            gap: 0;
+        }
+        .jt-node > summary::-webkit-details-marker { display: none; }
+        .jt-node > summary:hover { background: #1e293b; }
+        .jt-node > summary::before {
+            content: '▶';
+            font-size: 9px;
+            color: #4b5563;
+            transition: transform 0.1s;
+            display: inline-block;
+            width: 14px;
+            flex-shrink: 0;
+        }
+        .jt-node[open] > summary::before { transform: rotate(90deg); }
+
+        .jt-children {
+            padding-left: 14px;
+            border-left: 1px solid #2d3748;
+            margin-left: 6px;
+        }
+
+        .jt-row {
+            padding: 1px 2px;
+            display: flex;
+            align-items: baseline;
+            gap: 0;
+        }
+        .jt-row::before {
+            content: '';
+            width: 14px;
+            flex-shrink: 0;
+        }
+
+        .j-str   { color: #34d399; }
+        .j-num   { color: #60a5fa; }
+        .j-bool  { color: #f59e0b; }
+        .j-null  { color: #6b7280; font-style: italic; }
+        .j-key   { color: #c084fc; }
+        .jt-bracket { color: #9ca3af; }
+        .jt-count   { color: #4b5563; font-size: 11px; margin: 0 4px; }
+        .jt-punct   { color: #6b7280; white-space: pre; }
+
+        /* Leaflet dark overrides */
+        .leaflet-container { background: #1e293b; }
+        .leaflet-control-attribution { background: rgba(17,24,39,0.8) !important; color: #ccc !important; }
+        .leaflet-control-attribution a { color: #cecece !important; }
+        .leaflet-control-zoom a {
+            background: #111827 !important;
+            color: #f3f4f6 !important;
+            border-color: #374151 !important;
+        }
+        .leaflet-control-zoom a:hover { background: #1f2937 !important; color: #00a651 !important; }
+    </style>
 </head>
 <body>
 
-    <div id="input-cords">
-        <h1>Enter coords for some place in Kentucky</h1>
-        <label for="latitude">Latitude:</label>
-        <input type="text" id="latitude" name="latitude" value="38.0"> 
-        <label for="longitude">Longitude:</label>
-        <input type="text" id="longitude" name="longitude" value="-84.5"><br>
-        <button id="submit-btn">Submit</button>
+<header>
+    <div class="header-brand">
+        <img src="https://kygislicserv.ky.gov/mini-apps/oblique-service/images/logo-small.svg" alt="KY DGI" style="height:40px;width:auto;display:block;">
+        <div class="brand-text">
+            <span class="brand-title">Catalog Explorer</span>
+            <span class="brand-subtitle">Kentucky Division of Geographic Information</span>
+        </div>
     </div>
-    <div id="output">
-
+    <div class="header-controls">
+        <div class="coord-group">
+            <label for="latitude">Lat</label>
+            <input type="text" id="latitude" name="latitude" value="38.0">
+        </div>
+        <span class="separator">/</span>
+        <div class="coord-group">
+            <label for="longitude">Lon</label>
+            <input type="text" id="longitude" name="longitude" value="-84.5">
+        </div>
+        <button id="submit-btn">Search</button>
     </div>
-    <script>
-        const submitBtn = document.getElementById('submit-btn');
-        const outputDiv = document.getElementById('output');
-        const latInput = document.getElementById('latitude');
-        const lonInput = document.getElementById('longitude');
-        const stacApi = 'https://spved5ihrl.execute-api.us-west-2.amazonaws.com';
-        const obliqueApi = 'https://kygisserver.ky.gov/arcgis/rest/services/Temp_Services/GetObliqueCentroids/GPServer/GetObliqueCentroids';
-        let searchThingy = null;
+</header>
 
-        submitBtn.addEventListener('click', async () => {
-            outputDiv.innerHTML = "Searching for data";
-            updateSearch(outputDiv);
+<div id="map">
+    <!-- <div class="map-hint">Click the map to search a location</div> -->
+</div>
+<div id="map-resize-handle"></div>
 
-            const lat = parseFloat(latInput.value);
-            const lon = parseFloat(lonInput.value);
+<div id="status-bar">Ready — click the map or enter coordinates and press Search.</div>
 
-            // Fetch STAC Items
-            const staccall = `search?intersects={"type":"Point","coordinates":[${lon},${lat}]}`;
-            const encodedStacCall = `${stacApi}/${staccall}`;
+<main id="output"></main>
 
-            const stacResponse = await fetch(encodedStacCall);
-            const stacData = await stacResponse.json();
-            let images = "";
-            const stacItems = stacData.features.forEach(feature => {
-                console.log('STAC Item:', feature);
-                if (feature.assets.thumbnail) {
-                    const imageUrl = feature.assets.thumbnail.href;
-                    images += `<img src="${imageUrl}" alt="${feature.id}" title="${feature.id}" style="max-width: 200px; margin: 5px;">`;
-                } else {
-                    console.log('No thumbnail available for this STAC item.');
-                    images += `<img src="https://placehold.co/200" alt="${feature.id}" title="${feature.id}" style="max-width: 200px; margin: 5px;">`;
-                }
-            });
-            const stacHtml = `<h2>STAC Items:</h2><div>${images}</div>`;
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/esri-leaflet@3.0.12/dist/esri-leaflet.js"></script>
+<script src="https://unpkg.com/proj4@2.9.0/dist/proj4.js"></script>
+<script>
+    // ── Map setup ──────────────────────────────────────────────────────────────
+    const map = L.map('map', { zoomControl: true, maxZoom: 23 }).setView([37.5, -85.5], 7);
 
-            // Fetch Oblique Centroids
-            const obliqueCall = `execute?latitude=${lat}&longitude=${lon}&f=json`;
-            const encodedObliqueCall = `${obliqueApi}/${obliqueCall}`;
+    const BASEMAP_URL = (
+  "https://kygisserver.ky.gov/arcgis/rest/services/WGS84WM_Services/Ky_TCM_Base_WGS84WM/MapServer"
+);
 
-            const obliqueResponse = await fetch(encodedObliqueCall);
-            const obliqueData = await obliqueResponse.json();
-            let obliqueImages = "";
-            const obliqueItems = obliqueData.results[0].value
-            console.log('Oblique API Response:', obliqueItems );
-            for (let feature in obliqueItems) {
-                console.log('Oblique Item:', feature);
-                if (obliqueItems[feature].S3URL) {
-                    console.log('Oblique Thumbnail URL:', obliqueItems[feature].S3URL);
-                    const imageUrl = encodeURIComponent(obliqueItems[feature].S3URL);
-                    obliqueImages += `<img src="https://6hp4guqpwe.execute-api.us-west-2.amazonaws.com/cog/preview/200x200.jpg?url=${imageUrl}&max_size=100" alt="${obliqueItems[feature].ShotID}" title="${obliqueItems[feature].ShotID}" style="max-width: 200px; margin: 5px;">`;
-                } else {
-                    console.log('No thumbnail available for this Oblique item.');
-                    obliqueImages += `<img src="https://placehold.co/200" alt="${obliqueItems[feature].ShotID}" title="${obliqueItems[feature].ShotID}" style="max-width: 200px; margin: 5px;">`;
-                }
-            }
-            
-            console.log('Oblique Centroids:', obliqueData);
-            clearInterval(searchThingy);
-            outputDiv.innerHTML = stacHtml + `<h2>Closest Oblique Centroids:</h2><div>${obliqueImages}</div><pre>${JSON.stringify(obliqueData, null, 2)}</pre>`;
+const baseMap = L.esri.tiledMapLayer({
+  url: BASEMAP_URL,
+  attribution: "Ky Division of Geographic Information",
+  opacity: 0.9,
+  maxNativeZoom: 20, 
+  maxZoom: 23 
+}).addTo(map);
+
+
+    const markerIcon = L.divIcon({
+        className: '',
+        html: `<div style="
+            width:14px;height:14px;
+            background:#00a651;
+            border:2px solid #fff;
+            border-radius:50%;
+            box-shadow:0 0 0 3px rgba(0,166,81,0.4);
+        "></div>`,
+        iconSize: [14, 14],
+        iconAnchor: [7, 7]
+    });
+
+    let marker = null;
+    // Layer group for STAC bbox polygons — cleared on each search
+    const bboxLayer = L.layerGroup().addTo(map);
+
+    function placeMarker(lat, lng) {
+        if (marker) {
+            marker.setLatLng([lat, lng]);
+        } else {
+            marker = L.marker([lat, lng], { icon: markerIcon }).addTo(map);
+        }
+    }
+
+    function drawBboxes(features) {
+        bboxLayer.clearLayers();
+        features.forEach(f => {
+            if (!f.bbox) return;
+            const [minX, minY, maxX, maxY] = f.bbox;
+            L.rectangle([[minY, minX], [maxY, maxX]], {
+                color: '#00a651',
+                weight: 1.5,
+                opacity: 0.8,
+                fillColor: '#00a651',
+                fillOpacity: 0.08
+            })
+            .addTo(bboxLayer);
+        });
+    }
+
+    // ── Map resize handle ──────────────────────────────────────────────────────
+    const mapEl = document.getElementById('map');
+    const handle = document.getElementById('map-resize-handle');
+    const MIN_H = 80, MAX_H = window.innerHeight * 0.85;
+
+    handle.addEventListener('mousedown', e => {
+        e.preventDefault();
+        const startY = e.clientY;
+        const startH = mapEl.offsetHeight;
+        handle.classList.add('dragging');
+
+        function onMove(e) {
+            const h = Math.min(MAX_H, Math.max(MIN_H, startH + e.clientY - startY));
+            mapEl.style.height = h + 'px';
+            map.invalidateSize();
+        }
+
+        function onUp() {
+            handle.classList.remove('dragging');
+            document.removeEventListener('mousemove', onMove);
+            document.removeEventListener('mouseup', onUp);
+        }
+
+        document.addEventListener('mousemove', onMove);
+        document.addEventListener('mouseup', onUp);
+    });
+
+    map.on('click', (e) => {
+        const lat = e.latlng.lat.toFixed(6);
+        const lng = e.latlng.lng.toFixed(6);
+        latInput.value = lat;
+        lonInput.value = lng;
+        placeMarker(lat, lng);
+        runSearch(parseFloat(lat), parseFloat(lng));
+    });
+
+    // ── Helpers ────────────────────────────────────────────────────────────────
+    const services = {
+        "laz-phase1": "Ky_DSM_First_Return_5FT_Phase1",
+        "laz-phase2": "Ky_DSM_First_Return_2FT_Phase2",
+        "laz-phase3": "Ky_DSM_First_Return_2FT_Phase2",
+        "dem-phase1": "Ky_DEM_KYAPED_5FT",
+        "dem-phase2": "Ky_DEM_KYAPED_2FT_Phase2",
+        "dem-phase3": "Ky_DEM_KYAPED_2FT_Phase3"
+    };
+
+    // Native source pixel size in US survey feet (EPSG:3089 horizontal unit)
+    const nativeResolutionFt = {
+        "laz-phase1": 5,
+        "laz-phase2": 2,
+        "laz-phase3": 0.25,  // 3 inches
+        "dem-phase1": 5,
+        "dem-phase2": 2,
+        "dem-phase3": 0.25   // 3 inches
+    };
+
+    function buildHillshadeUrl(bbox, service) {
+        const base = `https://kyraster.ky.gov/arcgis/rest/services/ElevationServices/${service}/ImageServer/exportImage`;
+        const params = new URLSearchParams({
+            bbox: bbox.join(','),
+            bboxSR: '4326',
+            size: '200,200',
+            imageSR: '3089',
+            time: '',
+            format: 'jpgpng',
+            pixelType: 'UNKNOWN',
+            interpolation: '+RSP_BilinearInterpolation',
+            renderingRule: JSON.stringify({
+                rasterFunction: 'Hillshade',
+                rasterFunctionArguments: { HillshadeType: 1, ZFactor: 1.0 },
+                variableName: 'DEM'
+            }),
+            f: 'image'
+        });
+        return `${base}?${params}`;
+    }
+
+    // EPSG:3089 — NAD83 / Kentucky Single Zone (US survey feet)
+    proj4.defs('EPSG:3089',
+        '+proj=lcc +lat_0=36.3333333333333 +lon_0=-85.75 ' +
+        '+lat_1=37.0833333333333 +lat_2=38.6666666666667 ' +
+        '+x_0=1500000 +y_0=1000000 +ellps=GRS80 ' +
+        '+towgs84=0,0,0,0,0,0,0 +units=us-ft +no_defs'
+    );
+
+    // Build a TIFF world file (.tfw) string for a bbox in EPSG:4326
+    // projected to EPSG:3089 at the given pixel dimensions.
+    // TFW line order: pixelWidth, rowRotation, colRotation, pixelHeight (neg), centerULX, centerULY
+    function buildWorldFile(bbox, width, height) {
+        const [minLon, minLat, maxLon, maxLat] = bbox;
+        const [minX, minY] = proj4('EPSG:4326', 'EPSG:3089', [minLon, minLat]);
+        const [maxX, maxY] = proj4('EPSG:4326', 'EPSG:3089', [maxLon, maxLat]);
+
+        const pixelWidth  =  (maxX - minX) / width;
+        const pixelHeight = -(maxY - minY) / height; // negative — Y decreases down the image
+        const centerULX   = minX + pixelWidth  / 2;
+        const centerULY   = maxY + pixelHeight / 2;  // maxY minus half-pixel
+
+        return [pixelWidth, 0.0, 0.0, pixelHeight, centerULX, centerULY]
+            .map(n => n.toFixed(10))
+            .join('\n');
+    }
+
+    function downloadFile(content, filename) {
+        const a = Object.assign(document.createElement('a'), {
+            href: URL.createObjectURL(new Blob([content], { type: 'text/plain' })),
+            download: filename
+        });
+        a.click();
+        URL.revokeObjectURL(a.href);
+    }
+
+    // Returns { url, tfw, width, height }
+    // Computes output dimensions at native resolution (pixelSizeFt), capped at MAX_DIM.
+    // World file is derived from the same projected coords so it matches exactly.
+    const MAX_EXPORT_DIM = 4096;
+
+    function exportImageService(bbox, image, service, pixelSizeFt = 2) {
+        // Project bbox corners from WGS84 → EPSG:3089 (US survey feet)
+        const [minLon, minLat, maxLon, maxLat] = bbox;
+        const [minX, minY] = proj4('EPSG:4326', 'EPSG:3089', [minLon, minLat]);
+        const [maxX, maxY] = proj4('EPSG:4326', 'EPSG:3089', [maxLon, maxLat]);
+
+        // Pixel dimensions at native resolution, scaled down if they exceed the cap
+        const rawW = Math.round((maxX - minX) / pixelSizeFt);
+        const rawH = Math.round((maxY - minY) / pixelSizeFt);
+        const scale  = Math.min(1, MAX_EXPORT_DIM / Math.max(rawW, rawH, 1));
+        const width  = Math.max(1, Math.round(rawW * scale));
+        const height = Math.max(1, Math.round(rawH * scale));
+
+        const base = `https://kyraster.ky.gov/arcgis/rest/services/${image}/${service}/ImageServer/exportImage`;
+        const params = new URLSearchParams({
+            bbox: bbox.join(','),
+            bboxSR: '4326',
+            size: `${width},${height}`,
+            imageSR: '3089',
+            time: '',
+            format: 'tiff',
+            pixelType: 'UNKNOWN',
+            interpolation: '+RSP_BilinearInterpolation',
+            renderingRule: JSON.stringify({
+                rasterFunction: 'Hillshade',
+                rasterFunctionArguments: { HillshadeType: 1, ZFactor: 1.0 },
+                variableName: 'DEM'
+            }),
+            f: 'image'
         });
 
-        function updateSearch(element) {
-            let elementText = element.innerHTML;
-            searchThingy = setInterval(() => {
-                elementText += ".";
-                element.innerHTML = elementText;
-            }, 200);
+        // Build TFW from the actual output pixel size (accounts for any capping)
+        const pixelWidth  =  (maxX - minX) / width;
+        const pixelHeight = -(maxY - minY) / height;
+        const centerULX   = minX + pixelWidth  / 2;
+        const centerULY   = maxY + pixelHeight / 2;
+        const tfw = [pixelWidth, 0.0, 0.0, pixelHeight, centerULX, centerULY]
+            .map(n => n.toFixed(10))
+            .join('\n');
+
+        return { url: `${base}?${params}`, tfw, width, height };
+    }
+
+    function formatDate(str) {
+        if (!str) return '—';
+        const d = new Date(str);
+        if (isNaN(d)) return str;
+        return d.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+    }
+
+    function featureDate(feature) {
+        const p = feature.properties || {};
+        return new Date(p.datetime || p.start_datetime || 0);
+    }
+
+    function collectionTag(collection) {
+        if (!collection) return '';
+        const cls = collection.startsWith('dem') ? 'tag-dem' : 'tag-laz';
+        return `<span class="card-collection ${cls}">${collection}</span>`;
+    }
+
+    function attrRow(label, value) {
+        if (value == null || value === '') return '';
+        return `<div class="attr-row">
+            <span class="attr-label">${label}</span>
+            <span class="attr-value">${value}</span>
+        </div>`;
+    }
+
+    const DOWNLOAD_ASSET_TYPES = new Set([
+        'application/vnd.laszip',
+        'application/octet-stream',
+        'image/tiff',
+        'image/geotiff',
+        'application/geo+json',
+    ]);
+    const SKIP_ASSET_KEYS = new Set(['thumbnail', 'overview']);
+
+    function downloadLinks(assets) {
+        let entries = Object.entries(assets || {})
+            .filter(([key, asset]) =>
+                !SKIP_ASSET_KEYS.has(key) &&
+                (DOWNLOAD_ASSET_TYPES.has(asset.type) || key === 'data' || key === 'laz' || key === 'tif' || key === 'geotiff')
+            );
+
+        if (!entries.length) {
+            entries = Object.entries(assets || {})
+                .filter(([key]) => !SKIP_ASSET_KEYS.has(key) && key !== 'thumbnail');
         }
-    </script>
+
+        if (!entries.length) return '';
+
+        const links = entries.map(([key, asset]) => {
+            const label = asset.title || key.toUpperCase();
+            return `<a class="dl-link" href="${asset.href}" target="_blank" rel="noopener">&#8595; ${label}</a>`;
+        }).join('');
+
+        return `<div class="card-downloads">${links}</div>`;
+    }
+
+    function stacCard(feature) {
+        const p = feature.properties || {};
+        const date = formatDate(p.datetime || p.start_datetime);
+        const hasThumbnail = feature.assets?.thumbnail && !feature.collection.includes('dem');
+        const thumbSrc = hasThumbnail
+            ? feature.assets.thumbnail.href
+            : (services[feature.collection] ? buildHillshadeUrl(feature.bbox, services[feature.collection]) : null);
+
+        const thumb = thumbSrc
+            ? `<img class="card-thumb" src="${thumbSrc}" alt="${feature.id}" loading="lazy">`
+            : `<div class="card-thumb-placeholder">&#9974;</div>`;
+
+        // Export image + world file download links
+        const serviceName = services[feature.collection];
+        let exportLinks = '';
+        if (feature.bbox && serviceName) {
+            const pixelSizeFt = nativeResolutionFt[feature.collection] || 2;
+            const { url, tfw, width, height } = exportImageService(feature.bbox, 'ElevationServices', serviceName, pixelSizeFt);
+            const tfwDataUri = `data:text/plain;charset=utf-8,${encodeURIComponent(tfw)}`;
+            exportLinks = `
+                <a class="dl-link" href="${url}" target="_blank" rel="noopener">&#8595; TIFF</a>
+                <a class="dl-link" href="${tfwDataUri}" download="${feature.id}.tfw">&#8595; TFW</a>`;
+        }
+
+        return `<div class="card">
+            ${thumb}
+            <div class="card-body">
+                <div class="card-title">${feature.id}</div>
+                ${collectionTag(feature.collection)}
+                <div class="card-attrs">
+                    ${attrRow('Date', date)}
+                    ${attrRow('GSD', p.gsd ? p.gsd + ' m' : null)}
+                    ${attrRow('Platform', p.platform)}
+                    ${attrRow('Instrument', p.instruments?.join(', '))}
+                    ${attrRow('EPSG', p['proj:epsg'] ?? 3089)}
+                    ${attrRow('Cloud %', p['eo:cloud_cover'] != null ? p['eo:cloud_cover'] + '%' : null)}
+                </div>
+                <div class="card-downloads">
+                    ${exportLinks}
+                    ${downloadLinks(feature.assets)}
+                </div>
+            </div>
+        </div>`;
+    }
+
+    // Each oblique item has North/South/East/West sub-objects with the actual shot data
+    const OBLIQUE_DIRS = ['North', 'South', 'East', 'West'];
+
+    function obliqueCard(data, dirLabel) {
+        if (!data) return '';
+
+        const thumbUrl = data.S3URL
+            ? `https://6hp4guqpwe.execute-api.us-west-2.amazonaws.com/cog/preview/200x200.jpg?url=${encodeURIComponent(data.S3URL)}&max_size=100`
+            : null;
+
+        const thumb = thumbUrl
+            ? `<img class="card-thumb" src="${thumbUrl}" alt="${data.ShotID || dirLabel}" loading="lazy">`
+            : `<div class="card-thumb-placeholder">&#128247;</div>`;
+
+        const dlLink = data.S3URL
+            ? `<div class="card-downloads"><a class="dl-link" href="${data.S3URL}" target="_blank" rel="noopener">&#8595; TIFF</a></div>`
+            : '';
+
+        const label = dirLabel || data.Direction || 'oblique';
+
+        return `<div class="card">
+            ${thumb}
+            <div class="card-body">
+                <div class="card-title">${data.ShotID || label}</div>
+                <span class="card-collection tag-oblique">${label}</span>
+                <div class="card-attrs">
+                    ${attrRow('Date', formatDate(data.FlightDate))}
+                    ${attrRow('Flight Line', data.FlightLine)}
+                    ${attrRow('Camera', data.Camera)}
+                    ${attrRow('Altitude', data.Altitude ? data.Altitude + ' ft' : null)}
+                    ${attrRow('GSD', data.GSD ? data.GSD + ' in' : null)}
+                </div>
+                ${dlLink}
+            </div>
+        </div>`;
+    }
+
+    function obliqueDirectionCards(item) {
+        // Try direction sub-objects first (North/South/East/West)
+        const dirCards = OBLIQUE_DIRS.map(dir => obliqueCard(item[dir], dir)).join('');
+        // Fall back to rendering the item itself if no direction sub-objects found
+        return dirCards.trim() ? dirCards : obliqueCard(item, item.Direction);
+    }
+
+    // ── JSON / debug ───────────────────────────────────────────────────────────
+    function escHtml(s) {
+        return String(s)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;');
+    }
+
+    function renderJsonTree(data, key = null, depth = 0) {
+        const keyHtml = key !== null
+            ? `<span class="j-key">${escHtml(JSON.stringify(key))}</span><span class="jt-punct">: </span>`
+            : '';
+
+        if (data === null)             return `<div class="jt-row">${keyHtml}<span class="j-null">null</span></div>`;
+        if (typeof data === 'boolean') return `<div class="jt-row">${keyHtml}<span class="j-bool">${data}</span></div>`;
+        if (typeof data === 'number')  return `<div class="jt-row">${keyHtml}<span class="j-num">${data}</span></div>`;
+        if (typeof data === 'string')  return `<div class="jt-row">${keyHtml}<span class="j-str">${escHtml(JSON.stringify(data))}</span></div>`;
+
+        const isArr = Array.isArray(data);
+        const entries = isArr ? data.map((v, i) => [i, v]) : Object.entries(data);
+        const [open, close] = isArr ? ['[', ']'] : ['{', '}'];
+
+        if (entries.length === 0) {
+            return `<div class="jt-row">${keyHtml}<span class="jt-bracket">${open}${close}</span></div>`;
+        }
+
+        const summary = `${keyHtml}<span class="jt-bracket">${open}</span><span class="jt-count">${entries.length} ${isArr ? 'items' : 'keys'}</span><span class="jt-bracket">${close}</span>`;
+        const children = entries.map(([k, v]) => renderJsonTree(v, k, depth + 1)).join('');
+        const openAttr = depth === 0 ? ' open' : '';
+
+        return `<details class="jt-node"${openAttr}>
+            <summary>${summary}</summary>
+            <div class="jt-children">${children}</div>
+        </details>`;
+    }
+
+    function debugPanel(title, data) {
+        return `<details class="debug-panel" open>
+            <summary>${escHtml(title)}</summary>
+            <div class="json-tree">${renderJsonTree(data)}</div>
+        </details>`;
+    }
+
+    function setStatus(msg, loading = false) {
+        const bar = document.getElementById('status-bar');
+        bar.innerHTML = loading ? `<span class="spinner"></span> ${msg}` : msg;
+    }
+
+    // ── Search ─────────────────────────────────────────────────────────────────
+    const submitBtn = document.getElementById('submit-btn');
+    const outputDiv = document.getElementById('output');
+    const latInput  = document.getElementById('latitude');
+    const lonInput  = document.getElementById('longitude');
+    const stacApi    = 'https://spved5ihrl.execute-api.us-west-2.amazonaws.com';
+    const obliqueApi = 'https://kygisserver.ky.gov/arcgis/rest/services/Temp_Services/GetObliqueCentroids/GPServer/GetObliqueCentroids';
+
+    async function runSearch(lat, lon) {
+        submitBtn.disabled = true;
+        outputDiv.innerHTML = '';
+        setStatus('Searching catalog…', true);
+        history.replaceState(null, '', `?lat=${lat}&lon=${lon}`);
+
+        try {
+            const [stacResponse, obliqueResponse] = await Promise.all([
+                fetch(`${stacApi}/search?intersects={"type":"Point","coordinates":[${lon},${lat}]}`),
+                fetch(`${obliqueApi}/execute?latitude=${lat}&longitude=${lon}&f=json`)
+            ]);
+
+            const [stacData, obliqueData] = await Promise.all([
+                stacResponse.json(),
+                obliqueResponse.json()
+            ]);
+
+            // Sort by date ascending (earliest = left)
+            const stacFeatures = (stacData.features || [])
+                .slice()
+                .sort((a, b) => featureDate(a) - featureDate(b));
+
+            // value is { North: {...}, South: {...}, East: {...}, West: {...} }
+            const obliqueValue = obliqueData.results?.[0]?.value || {};
+            const obliqueDirCount = OBLIQUE_DIRS.filter(d => obliqueValue[d]).length;
+
+            // Draw bbox polygons on the map
+            drawBboxes(stacFeatures);
+
+            outputDiv.innerHTML = `
+            <section>
+                <div class="section-header">
+                    <span class="section-title">Elevation &amp; Lidar Items</span>
+                    <span class="count-badge">${stacFeatures.length}</span>
+                </div>
+                <div class="card-grid">
+                    ${stacFeatures.map(stacCard).join('') || '<p class="empty-state">No items found.</p>'}
+                </div>
+            </section>
+            <section>
+                <div class="section-header">
+                    <span class="section-title">Closest Oblique Imagery</span>
+                    <span class="count-badge">${obliqueDirCount} shots</span>
+                </div>
+                <div class="card-grid">
+                    ${OBLIQUE_DIRS.map(dir => obliqueCard(obliqueValue[dir], dir)).join('') || '<p class="empty-state">No oblique imagery found.</p>'}
+                </div>
+            </section>
+            <section class="debug-section">
+                <div class="section-header">
+                    <span class="section-title">Debug</span>
+                    <span class="count-badge">raw API responses</span>
+                </div>
+                ${debugPanel('STAC response', stacData)}
+                ${debugPanel('Oblique response', obliqueData)}
+            </section>`;
+
+            setStatus(`Found ${stacFeatures.length} catalog item(s) and ${obliqueDirCount} oblique shot(s).`);
+        } catch (err) {
+            console.error(err);
+            setStatus(`Error: ${err.message}`);
+        } finally {
+            submitBtn.disabled = false;
+        }
+    }
+
+    submitBtn.addEventListener('click', () => {
+        const lat = parseFloat(latInput.value);
+        const lon = parseFloat(lonInput.value);
+        if (isNaN(lat) || isNaN(lon)) { setStatus('Invalid coordinates.'); return; }
+        placeMarker(lat, lon);
+        map.panTo([lat, lon]);
+        runSearch(lat, lon);
+    });
+
+    // ── Init from URL params ───────────────────────────────────────────────────
+    const sp = new URLSearchParams(location.search);
+    const initLat = parseFloat(sp.get('lat'));
+    const initLon = parseFloat(sp.get('lon'));
+    if (!isNaN(initLat) && !isNaN(initLon)) {
+        latInput.value = initLat;
+        lonInput.value = initLon;
+        placeMarker(initLat, initLon);
+        map.setView([initLat, initLon], 12);
+        runSearch(initLat, initLon);
+    }
+</script>
 </body>
 </html>
