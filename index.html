@@ -78,7 +78,7 @@
             font-weight: 600;
             padding: 6px 10px;
             border-radius: 4px;
-            width: 120px;
+            width: 180px;
             outline: none;
             transition: border-color 0.2s;
         }
@@ -451,7 +451,7 @@
         </div>
     </div>
     <div class="header-controls">
-        <div class="coord-group">
+        <!-- <div class="coord-group">
             <label for="latitude">Lat</label>
             <input type="text" id="latitude" name="latitude" value="38.0">
         </div>
@@ -459,6 +459,10 @@
         <div class="coord-group">
             <label for="longitude">Lon</label>
             <input type="text" id="longitude" name="longitude" value="-84.5">
+        </div> -->
+        <div class="coord-group">   
+            <label for="latlon">Lat, Lon or X, Y (EPSG: 3089)</label>
+                <input type="text" id="latlon" name="latlon" placeholder="lat, lon or x, y">
         </div>
         <button id="submit-btn">Search</button>
     </div>
@@ -564,13 +568,49 @@ const baseMap = L.esri.tiledMapLayer({
     map.on('click', (e) => {
         const lat = e.latlng.lat.toFixed(6);
         const lng = e.latlng.lng.toFixed(6);
-        latInput.value = lat;
-        lonInput.value = lng;
+        // latInput.value = lat;
+        // lonInput.value = lng;
+        latlonInput.value = `${lat}, ${lng}`;
         placeMarker(lat, lng);
         runSearch(parseFloat(lat), parseFloat(lng));
     });
 
     // ── Helpers ────────────────────────────────────────────────────────────────
+
+    // take a string input and return a valid lat or lon number, or null if invalid
+    // also, take either xy, yx, lat/lon or lon/lat order and return in lat, lon order
+    function checkCoords (s) {
+        console.log('Checking coords:', s);
+        if (typeof s === 'string') {
+            const parts = s.replace(/°/g, '').split(',').map(p => p.trim());
+            console.log('Parsed parts:', parts);
+            if (parts.length === 2) {
+                const nums = parts.map(Number);
+                console.log('Parsed numbers:', nums);
+                if (nums.every(n => !isNaN(n))) {
+                    // Heuristic: if the first number is between 36 and 40, treat as lat,lon in kentucky; otherwise assume lon,lat order
+                    if (nums[0] >= 36 && nums[0] <= 40 && nums[1] >= -90 && nums[1] <= -81) {
+                        return [nums[0],nums[1]];
+                    } else if (nums[1] >= 36 && nums[1] <= 40 && nums[0] >= -90 && nums[0] <= -81) {
+                        return [nums[1], nums[0]];
+                    } else if (nums[0] > 1000000 && nums[1] > 1000000) {
+                        // If both numbers are large, assume they're in EPSG:3089 (US survey feet) and convert to lat/lon
+                        return project3089To4326(nums[0], nums[1]); // note the reversed order for x,y
+                    } else {
+                        return null;
+                    }
+                }
+            }
+        }
+        return null;
+    }
+
+    function project3089To4326(x, y) {
+        const [a, b] = proj4('EPSG:3089', 'EPSG:4326', [x, y]); // project to WGS84 first
+        console.log('Projected to WGS84:', b, a);
+        return [b, a]; // proj4('EPSG:3089', 'EPSG:4326', [x, y]); // Note: proj4 uses [lon, lat] order for coordinates
+    }
+
     const services = {
         "laz-phase1": "Ky_DSM_First_Return_5FT_Phase1",
         "laz-phase2": "Ky_DSM_First_Return_2FT_Phase2",
@@ -892,8 +932,9 @@ const baseMap = L.esri.tiledMapLayer({
     // ── Search ─────────────────────────────────────────────────────────────────
     const submitBtn = document.getElementById('submit-btn');
     const outputDiv = document.getElementById('output');
-    const latInput  = document.getElementById('latitude');
-    const lonInput  = document.getElementById('longitude');
+    // const latInput  = document.getElementById('latitude');
+    // const lonInput  = document.getElementById('longitude');
+    const latlonInput = document.getElementById('latlon');
     const stacApi    = 'https://spved5ihrl.execute-api.us-west-2.amazonaws.com';
     const obliqueApi = 'https://kygisserver.ky.gov/arcgis/rest/services/Temp_Services/GetObliqueCentroids/GPServer/GetObliqueCentroids';
 
@@ -901,8 +942,10 @@ const baseMap = L.esri.tiledMapLayer({
         submitBtn.disabled = true;
         outputDiv.innerHTML = '';
         setStatus('Searching catalog…', true);
+        lat = parseFloat(lat).toFixed(6);
+        lon = parseFloat(lon).toFixed(6);
         history.replaceState(null, '', `?lat=${lat}&lon=${lon}`);
-
+        latlonInput.value = `${lat}, ${lon}`;
         try {
             const [stacResponse, obliqueResponse] = await Promise.all([
                 fetch(`${stacApi}/search?intersects={"type":"Point","coordinates":[${lon},${lat}]}`),
@@ -964,8 +1007,10 @@ const baseMap = L.esri.tiledMapLayer({
     }
 
     submitBtn.addEventListener('click', () => {
-        const lat = parseFloat(latInput.value);
-        const lon = parseFloat(lonInput.value);
+        // const lat = parseFloat(latInput.value);
+        // const lon = parseFloat(lonInput.value);
+        const [lat, lon] = checkCoords(latlonInput.value);
+        console.log('Checked coords:', lat, lon);
         if (isNaN(lat) || isNaN(lon)) { setStatus('Invalid coordinates.'); return; }
         placeMarker(lat, lon);
         map.panTo([lat, lon]);
@@ -977,8 +1022,9 @@ const baseMap = L.esri.tiledMapLayer({
     const initLat = parseFloat(sp.get('lat'));
     const initLon = parseFloat(sp.get('lon'));
     if (!isNaN(initLat) && !isNaN(initLon)) {
-        latInput.value = initLat;
-        lonInput.value = initLon;
+        // latInput.value = initLat;
+        // lonInput.value = initLon;
+        latlonInput.value = `${initLat}, ${initLon}`;
         placeMarker(initLat, initLon);
         map.setView([initLat, initLon], 12);
         runSearch(initLat, initLon);
