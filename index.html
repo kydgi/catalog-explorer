@@ -104,6 +104,34 @@
         #submit-btn:active  { background: #064e3b; }
         #submit-btn:disabled { background: #374151; color: #6b7280; cursor: not-allowed; }
 
+        #clear-history-btn {
+            background: transparent;
+            color: #6b7280;
+            border: 1px solid #374151;
+            font-family: 'Dosis', sans-serif;
+            font-size: 13px;
+            font-weight: 700;
+            padding: 6px 14px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: color 0.2s, border-color 0.2s;
+        }
+        #clear-history-btn:hover { color: #f87171; border-color: #f87171; }
+
+        #download-geojson-btn {
+            background: transparent;
+            color: #6b7280;
+            border: 1px solid #374151;
+            font-family: 'Dosis', sans-serif;
+            font-size: 13px;
+            font-weight: 700;
+            padding: 6px 14px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: color 0.2s, border-color 0.2s;
+        }
+        #download-geojson-btn:hover { color: #60a5fa; border-color: #60a5fa; }
+
         /* ── Map ── */
         #map {
             width: 100%;
@@ -255,11 +283,17 @@
         }
 
         .card-title {
-            font-size: 13px;
+            font-size: 14px;
             font-weight: 700;
             color: #f3f4f6;
-            word-break: break-all;
             line-height: 1.3;
+        }
+
+        .card-subtitle {
+            font-size: 11px;
+            color: #6b7280;
+            word-break: break-all;
+            line-height: 1.4;
         }
 
         .card-collection {
@@ -465,6 +499,8 @@
                 <input type="text" id="latlon" name="latlon" placeholder="lat, lon or x, y">
         </div>
         <button id="submit-btn">Search</button>
+        <button id="clear-history-btn" style="display:none">Clear History</button>
+        <button id="download-geojson-btn" style="display:none">&#8595; GeoJSON</button>
     </div>
 </header>
 
@@ -482,7 +518,8 @@
 <script src="https://unpkg.com/proj4@2.9.0/dist/proj4.js"></script>
 <script>
     // ── Map setup ──────────────────────────────────────────────────────────────
-    const map = L.map('map', { zoomControl: true, maxZoom: 23 }).setView([37.5, -85.5], 7);
+    const KY_BOUNDS = [[36.497, -89.572], [39.147, -81.965]];
+    const map = L.map('map', { zoomControl: true, maxZoom: 23 }).fitBounds(KY_BOUNDS, { animate: false });
 
     const BASEMAP_URL = (
   "https://kygisserver.ky.gov/arcgis/rest/services/WGS84WM_Services/Ky_TCM_Base_WGS84WM/MapServer"
@@ -511,7 +548,9 @@ const baseMap = L.esri.tiledMapLayer({
     });
 
     let marker = null;
-    // Layer group for STAC bbox polygons — cleared on each search
+    // History layer sits below the active bbox layer
+    const historyLayer = L.layerGroup().addTo(map);
+    // Layer group for current search bbox polygons
     const bboxLayer = L.layerGroup().addTo(map);
 
     function placeMarker(lat, lng) {
@@ -568,11 +607,14 @@ const baseMap = L.esri.tiledMapLayer({
     map.on('click', (e) => {
         const lat = e.latlng.lat.toFixed(6);
         const lng = e.latlng.lng.toFixed(6);
-        // latInput.value = lat;
-        // lonInput.value = lng;
         latlonInput.value = `${lat}, ${lng}`;
         placeMarker(lat, lng);
-        runSearch(parseFloat(lat), parseFloat(lng));
+        const cached = findCachedEntry(parseFloat(lat), parseFloat(lng));
+        if (cached) {
+            restoreEntry(cached);
+        } else {
+            runSearch(parseFloat(lat), parseFloat(lng));
+        }
     });
 
     // ── Helpers ────────────────────────────────────────────────────────────────
@@ -620,11 +662,23 @@ const baseMap = L.esri.tiledMapLayer({
         "dem-phase3": "Ky_DEM_KYAPED_2FT_Phase3"
     };
 
+    const collectionLabels = {
+        "laz-phase1": "Phase 1 Lidar",
+        "laz-phase2": "Phase 2 Lidar",
+        "laz-phase3": "Phase 3 Lidar",
+        "dem-phase1": "Phase 1 DEM",
+        "dem-phase2": "Phase 2 DEM",
+        "dem-phase3": "Phase 3 DEM",
+        "ortho-phase1": "Phase 1 Ortho",
+        "ortho-phase2": "Phase 2 Ortho",
+        "ortho-phase3": "Phase 3 Ortho",
+        "orthos-phase1": "Phase 1 Ortho",
+        "orthos-phase2": "Phase 2 Ortho",
+        "orthos-phase3": "Phase 3 Ortho"
+    };
+
     // Native source pixel size in US survey feet (EPSG:3089 horizontal unit)
     const nativeResolutionFt = {
-        "laz-phase1": 5,
-        "laz-phase2": 2,
-        "laz-phase3": 0.25,  // 3 inches
         "dem-phase1": 5,
         "dem-phase2": 2,
         "dem-phase3": 0.25   // 3 inches
@@ -650,6 +704,479 @@ const baseMap = L.esri.tiledMapLayer({
         });
         return `${base}?${params}`;
     }
+
+    function formatDate(str) {
+        if (!str) return '—';
+        const d = new Date(str);
+        if (isNaN(d)) return str;
+        return d.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+    }
+
+    function featureDate(feature) {
+        const p = feature.properties || {};
+        return new Date(p.datetime || p.start_datetime || 0);
+    }
+
+    function collectionTag(collection) {
+        if (!collection) return '';
+        const cls = collection.startsWith('dem') ? 'tag-dem' : 'tag-laz';
+        return `<span class="card-collection ${cls}">${collection}</span>`;
+    }
+
+    function primaryFilename(assets) {
+        if (!assets) return '';
+        const keys = ['data', 'image', 'visual', 'thumbnail'];
+        for (const k of keys) {
+            if (assets[k]?.href) return assets[k].href.split('?')[0].split('/').pop();
+        }
+        const first = Object.values(assets).find(a => a?.href);
+        return first ? first.href.split('?')[0].split('/').pop() : '';
+    }
+
+    function attrRow(label, value) {
+        if (value == null || value === '') return '';
+        return `<div class="attr-row">
+            <span class="attr-label">${label}</span>
+            <span class="attr-value">${value}</span>
+        </div>`;
+    }
+
+    const DOWNLOAD_ASSET_TYPES = new Set([
+        'application/vnd.laszip',
+        'application/octet-stream',
+        'image/tiff',
+        'image/geotiff',
+        'application/geo+json',
+    ]);
+    const SKIP_ASSET_KEYS = new Set(['thumbnail', 'overview']);
+
+    function assetFormatLabel(key, asset) {
+        const type = (asset.type || '').toLowerCase();
+        const href = (asset.href || '');
+        const ext  = href.split('?')[0].split('.').pop().toLowerCase();
+        const isCog = /s3\.|amazonaws|cloudfront/.test(href);
+
+        const isCopc = type.includes('copc') || key.toLowerCase().includes('copc') || href.toLowerCase().includes('copc');
+        if (type === 'application/vnd.laszip' || ext === 'laz') return isCopc ? 'COPC LAZ' : 'LAZ';
+        if (ext === 'las') return isCopc ? 'COPC LAS' : 'LAS';
+        if (type.includes('tiff') || type.includes('tif') || ext === 'tif' || ext === 'tiff')
+            return isCog ? 'COG TIFF' : 'GeoTIFF';
+        if (type === 'application/geo+json' || ext === 'geojson') return 'GeoJSON';
+        if (ext === 'jpg' || ext === 'jpeg') return 'JPEG';
+        // fallback: strip MIME prefix cruft and use key
+        return key.toUpperCase();
+    }
+
+    function downloadLinks(assets) {
+        let entries = Object.entries(assets || {})
+            .filter(([key, asset]) =>
+                !SKIP_ASSET_KEYS.has(key) &&
+                (DOWNLOAD_ASSET_TYPES.has(asset.type) || key === 'data' || key === 'laz' || key === 'tif' || key === 'geotiff')
+            );
+
+        if (!entries.length) {
+            entries = Object.entries(assets || {})
+                .filter(([key, asset]) => {
+                    if (SKIP_ASSET_KEYS.has(key) || key === 'thumbnail') return false;
+                    const ext = (asset.href || '').split('?')[0].split('.').pop().toLowerCase();
+                    return ext !== 'png';
+                });
+        }
+
+        if (!entries.length) return '';
+
+        const links = entries.map(([key, asset]) => {
+            if (key !== 'metadata') return `<a class="dl-link" href="${asset.href}" target="_blank" rel="noopener">&#8595; ${assetFormatLabel(key, asset)}</a>`
+        }).join('');
+
+        const tfwEntry = Object.values(assets).find(a => a?.href && a.href.split('?')[0].toLowerCase().endsWith('.tfw'));
+        const tfwLink = tfwEntry
+            ? `<a class="dl-link" href="${tfwEntry.href}" target="_blank" rel="noopener">&#8595; TFW</a>`
+            : '';
+
+        return `<div class="card-downloads">${links}${tfwLink}</div>`;
+    }
+
+    function stacCard(feature) {
+        const p = feature.properties || {};
+        const date = formatDate(p.datetime || p.start_datetime);
+        const hasThumbnail = feature.assets?.thumbnail && !feature.collection.includes('dem');
+        const thumbSrc = hasThumbnail
+            ? feature.assets.thumbnail.href
+            : (services[feature.collection] ? buildHillshadeUrl(feature.bbox, services[feature.collection]) : null);
+
+        const thumb = thumbSrc
+            ? `<img class="card-thumb" src="${thumbSrc}" alt="${feature.id}" loading="lazy">`
+            : `<div class="card-thumb-placeholder">&#9974;</div>`;
+
+        return `<div class="card">
+            ${thumb}
+            <div class="card-body">
+                <div class="card-title">${collectionLabels[feature.collection] || feature.collection}</div>
+                <div class="card-subtitle">${feature.id}</div>
+                <div class="card-attrs">
+                    ${attrRow('Date', date)}
+                    ${attrRow('GSD', p.gsd ? p.gsd + ' m' : null)}
+                    ${attrRow('Platform', p.platform)}
+                    ${attrRow('Instrument', p.instruments?.join(', '))}
+                    ${attrRow('EPSG', p['proj:epsg'] ?? 3089)}
+                    ${attrRow('Cloud %', p['eo:cloud_cover'] != null ? p['eo:cloud_cover'] + '%' : null)}
+                </div>
+                ${downloadLinks(feature.assets)}
+            </div>
+        </div>`;
+    }
+
+    // Each oblique item has North/South/East/West sub-objects with the actual shot data
+    const OBLIQUE_DIRS = ['North', 'South', 'East', 'West'];
+
+    function imgError(el) {
+        el.outerHTML = '<div class="card-thumb-placeholder">&#128247;</div>';
+    }
+
+    function obliqueCard(data, dirLabel) {
+        if (!data) return '';
+
+        const thumbUrl = data.S3URL
+            ? `https://6hp4guqpwe.execute-api.us-west-2.amazonaws.com/cog/preview/200x200.jpg?url=${encodeURIComponent(data.S3URL)}&max_size=100`
+            : null;
+
+        const thumb = thumbUrl
+            ? `<img class="card-thumb" src="${thumbUrl}" alt="${data.ShotID || dirLabel}" loading="lazy" onerror="imgError(this)">`
+            : `<div class="card-thumb-placeholder">&#128247;</div>`;
+
+        const dlLink = data.S3URL
+            ? `<div class="card-downloads"><a class="dl-link" href="${data.S3URL}" target="_blank" rel="noopener">&#8595; TIFF</a></div>`
+            : '';
+
+        const label = dirLabel || data.Direction || 'oblique';
+        const obliqueFilename = data.S3URL ? data.S3URL.split('/').pop() : (data.ShotID || '');
+
+        return `<div class="card">
+            ${thumb}
+            <div class="card-body">
+                <div class="card-title">${label}</div>
+                <div class="card-subtitle">${obliqueFilename}</div>
+                <div class="card-attrs">
+                    ${attrRow('Date', formatDate(data.FlightDate))}
+                    ${attrRow('Flight Line', data.FlightLine)}
+                    ${attrRow('Camera', data.Camera)}
+                    ${attrRow('Altitude', data.Altitude ? data.Altitude + ' ft' : null)}
+                    ${attrRow('GSD', data.GSD ? data.GSD + ' in' : null)}
+                </div>
+                ${dlLink}
+            </div>
+        </div>`;
+    }
+
+    function obliqueDirectionCards(item) {
+        // Try direction sub-objects first (North/South/East/West)
+        const dirCards = OBLIQUE_DIRS.map(dir => obliqueCard(item[dir], dir)).join('');
+        // Fall back to rendering the item itself if no direction sub-objects found
+        return dirCards.trim() ? dirCards : obliqueCard(item, item.Direction);
+    }
+
+    // ── JSON / debug ───────────────────────────────────────────────────────────
+    function escHtml(s) {
+        return String(s)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;');
+    }
+
+    function renderJsonTree(data, key = null, depth = 0) {
+        const keyHtml = key !== null
+            ? `<span class="j-key">${escHtml(JSON.stringify(key))}</span><span class="jt-punct">: </span>`
+            : '';
+
+        if (data === null)             return `<div class="jt-row">${keyHtml}<span class="j-null">null</span></div>`;
+        if (typeof data === 'boolean') return `<div class="jt-row">${keyHtml}<span class="j-bool">${data}</span></div>`;
+        if (typeof data === 'number')  return `<div class="jt-row">${keyHtml}<span class="j-num">${data}</span></div>`;
+        if (typeof data === 'string')  return `<div class="jt-row">${keyHtml}<span class="j-str">${escHtml(JSON.stringify(data))}</span></div>`;
+
+        const isArr = Array.isArray(data);
+        const entries = isArr ? data.map((v, i) => [i, v]) : Object.entries(data);
+        const [open, close] = isArr ? ['[', ']'] : ['{', '}'];
+
+        if (entries.length === 0) {
+            return `<div class="jt-row">${keyHtml}<span class="jt-bracket">${open}${close}</span></div>`;
+        }
+
+        const summary = `${keyHtml}<span class="jt-bracket">${open}</span><span class="jt-count">${entries.length} ${isArr ? 'items' : 'keys'}</span><span class="jt-bracket">${close}</span>`;
+        const children = entries.map(([k, v]) => renderJsonTree(v, k, depth + 1)).join('');
+        const openAttr = depth === 0 ? ' open' : '';
+
+        return `<details class="jt-node"${openAttr}>
+            <summary>${summary}</summary>
+            <div class="jt-children">${children}</div>
+        </details>`;
+    }
+
+    function debugPanel(title, data) {
+        return `<details class="debug-panel" open>
+            <summary>${escHtml(title)}</summary>
+            <div class="json-tree">${renderJsonTree(data)}</div>
+        </details>`;
+    }
+
+    function setStatus(msg, loading = false) {
+        const bar = document.getElementById('status-bar');
+        bar.innerHTML = loading ? `<span class="spinner"></span> ${msg}` : msg;
+    }
+
+    // ── Query history (localStorage) ───────────────────────────────────────────
+    const HISTORY_KEY = 'kydgi-catalog-history';
+
+    function loadHistory() {
+        try { return JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]'); }
+        catch { return []; }
+    }
+
+    function saveToHistory(lat, lon, stacData, obliqueData) {
+        const history = loadHistory();
+        history.push({ id: Date.now(), lat, lon, stacData, obliqueData });
+        localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
+        refreshClearBtn();
+    }
+
+    function clearHistory() {
+        localStorage.removeItem(HISTORY_KEY);
+        historyLayer.clearLayers();
+        refreshClearBtn();
+    }
+
+    function refreshClearBtn() {
+        const hasHistory = loadHistory().length > 0;
+        clearHistoryBtn.style.display = hasHistory ? '' : 'none';
+        downloadGeoJsonBtn.style.display = hasHistory ? '' : 'none';
+    }
+
+    // Returns the first saved entry whose STAC bboxes contain [lon, lat], or null.
+    function findCachedEntry(lat, lon) {
+        for (const entry of loadHistory()) {
+            for (const f of (entry.stacData?.features || [])) {
+                if (!f.bbox) continue;
+                const [minX, minY, maxX, maxY] = f.bbox;
+                if (lon >= minX && lon <= maxX && lat >= minY && lat <= maxY) {
+                    return entry;
+                }
+            }
+        }
+        return null;
+    }
+
+    function drawHistoryBboxes() {
+        historyLayer.clearLayers();
+        loadHistory().forEach(entry => {
+            (entry.stacData?.features || []).forEach(f => {
+                if (!f.bbox) return;
+                const [minX, minY, maxX, maxY] = f.bbox;
+                L.rectangle([[minY, minX], [maxY, maxX]], {
+                    color: '#00a651',
+                    weight: 1,
+                    opacity: 0.35,
+                    fillColor: '#00a651',
+                    fillOpacity: 0.04,
+                    dashArray: '5 5'
+                })
+                .on('click', () => restoreEntry(entry))
+                .addTo(historyLayer);
+            });
+        });
+    }
+
+    function restoreEntry(entry) {
+        placeMarker(entry.lat, entry.lon);
+        map.panTo([entry.lat, entry.lon], { animate: false });
+        latlonInput.value = `${entry.lat}, ${entry.lon}`;
+        history.replaceState(null, '', `?lat=${entry.lat}&lon=${entry.lon}`);
+        renderResults(entry.stacData, entry.obliqueData);
+        drawBboxes(entry.stacData?.features || []);
+        setStatus(`Restored query from ${new Date(entry.id).toLocaleString()}.`);
+    }
+
+    // ── Render ─────────────────────────────────────────────────────────────────
+    function renderResults(stacData, obliqueData) {
+        const stacFeatures = (stacData.features || [])
+            .slice()
+            .sort((a, b) => featureDate(a) - featureDate(b));
+
+        const obliqueValue = obliqueData.results?.[0]?.value || {};
+        const obliqueDirCount = OBLIQUE_DIRS.filter(d => obliqueValue[d]).length;
+
+        outputDiv.innerHTML = `
+        <section>
+            <div class="section-header">
+                <span class="section-title">Elevation &amp; Lidar Items</span>
+                <span class="count-badge">${stacFeatures.length}</span>
+            </div>
+            <div class="card-grid">
+                ${stacFeatures.map(stacCard).join('') || '<p class="empty-state">No items found.</p>'}
+            </div>
+        </section>
+        <section>
+            <div class="section-header">
+                <span class="section-title">Closest Oblique Imagery</span>
+                <span class="count-badge">${obliqueDirCount} shots</span>
+            </div>
+            <div class="card-grid">
+                ${OBLIQUE_DIRS.map(dir => obliqueCard(obliqueValue[dir], dir)).join('') || '<p class="empty-state">No oblique imagery found.</p>'}
+            </div>
+        </section>
+        <section class="debug-section">
+            <div class="section-header">
+                <span class="section-title">Debug</span>
+                <span class="count-badge">raw API responses</span>
+            </div>
+            ${debugPanel('STAC response', stacData)}
+            ${debugPanel('Oblique response', obliqueData)}
+        </section>`;
+
+        return { stacFeatures, obliqueDirCount };
+    }
+
+    // ── Search ─────────────────────────────────────────────────────────────────
+    const submitBtn = document.getElementById('submit-btn');
+    const clearHistoryBtn = document.getElementById('clear-history-btn');
+    const downloadGeoJsonBtn = document.getElementById('download-geojson-btn');
+    const outputDiv = document.getElementById('output');
+    const latlonInput = document.getElementById('latlon');
+    const stacApi    = 'https://spved5ihrl.execute-api.us-west-2.amazonaws.com';
+    const obliqueApi = 'https://kygisserver.ky.gov/arcgis/rest/services/Temp_Services/GetObliqueCentroids/GPServer/GetObliqueCentroids';
+
+    let searching = false;
+    let pendingSearch = null;
+
+    async function runSearch(lat, lon) {
+        lat = parseFloat(lat).toFixed(6);
+        lon = parseFloat(lon).toFixed(6);
+
+        // If a request is already in-flight, queue this one (last-write-wins) and bail.
+        if (searching) {
+            pendingSearch = { lat, lon };
+            return;
+        }
+
+        searching = true;
+        submitBtn.disabled = true;
+        outputDiv.innerHTML = '';
+        setStatus('Searching catalog…', true);
+        history.replaceState(null, '', `?lat=${lat}&lon=${lon}`);
+        latlonInput.value = `${lat}, ${lon}`;
+        try {
+            const [stacResponse, obliqueResponse] = await Promise.all([
+                fetch(`${stacApi}/search?intersects={"type":"Point","coordinates":[${lon},${lat}]}`),
+                fetch(`${obliqueApi}/execute?latitude=${lat}&longitude=${lon}&f=json`)
+            ]);
+
+            const [stacData, obliqueData] = await Promise.all([
+                stacResponse.json(),
+                obliqueResponse.json()
+            ]);
+
+            const { stacFeatures, obliqueDirCount } = renderResults(stacData, obliqueData);
+            drawBboxes(stacFeatures);
+            saveToHistory(lat, lon, stacData, obliqueData);
+            drawHistoryBboxes();
+
+            setStatus(`Found ${stacFeatures.length} catalog item(s) and ${obliqueDirCount} oblique shot(s).`);
+        } catch (err) {
+            console.error(err);
+            setStatus(`Error: ${err.message}`);
+        } finally {
+            searching = false;
+            submitBtn.disabled = false;
+
+            // Run the queued search now that we're clear — but check cache first
+            // so a double-tap on the same spot doesn't re-query or duplicate storage.
+            if (pendingSearch) {
+                const { lat: pLat, lon: pLon } = pendingSearch;
+                pendingSearch = null;
+                const cached = findCachedEntry(parseFloat(pLat), parseFloat(pLon));
+                if (cached) {
+                    restoreEntry(cached);
+                } else {
+                    runSearch(pLat, pLon);
+                }
+            }
+        }
+    }
+
+    clearHistoryBtn.addEventListener('click', () => {
+        clearHistory();
+        setStatus('Query history cleared.');
+    });
+
+    downloadGeoJsonBtn.addEventListener('click', () => {
+        const features = loadHistory().flatMap(e => (e.stacData?.features || []).map(f => {
+            const assetLinks = {};
+            for (const [key, asset] of Object.entries(f.assets || {})) {
+                if (asset?.href) assetLinks[`asset_${key}`] = asset.href;
+            }
+            return {
+                type: 'Feature',
+                id: f.id,
+                geometry: f.geometry,
+                bbox: f.bbox,
+                properties: {
+                    ...f.properties,
+                    collection: f.collection,
+                    collection_label: collectionLabels[f.collection] || f.collection,
+                    stac_id: f.id,
+                    ...assetLinks
+                }
+            };
+        }));
+        const geojson = { type: 'FeatureCollection', features };
+        const blob = new Blob([JSON.stringify(geojson, null, 2)], { type: 'application/geo+json' });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = 'kydgi-queries.geojson';
+        a.click();
+        URL.revokeObjectURL(a.href);
+    });
+
+    submitBtn.addEventListener('click', () => {
+        // const lat = parseFloat(latInput.value);
+        // const lon = parseFloat(lonInput.value);
+        const [lat, lon] = checkCoords(latlonInput.value);
+        console.log('Checked coords:', lat, lon);
+        if (isNaN(lat) || isNaN(lon)) { setStatus('Invalid coordinates.'); return; }
+        placeMarker(lat, lon);
+        map.panTo([lat, lon]);
+        runSearch(lat, lon);
+    });
+
+    // ── Init history ───────────────────────────────────────────────────────────
+    drawHistoryBboxes();
+    refreshClearBtn();
+
+    // Zoom to extent of all previously queried areas on load
+    const allBboxes = loadHistory().flatMap(e => (e.stacData?.features || []).map(f => f.bbox).filter(Boolean));
+    if (allBboxes.length) {
+        const bounds = L.latLngBounds(allBboxes.map(([minX, minY, maxX, maxY]) => [[minY, minX], [maxY, maxX]]));
+        map.fitBounds(bounds, { padding: [20, 20], animate:false });
+    }
+
+    // ── Init from URL params ───────────────────────────────────────────────────
+    const sp = new URLSearchParams(location.search);
+    const initLat = parseFloat(sp.get('lat'));
+    const initLon = parseFloat(sp.get('lon'));
+    if (!isNaN(initLat) && !isNaN(initLon)) {
+        latlonInput.value = `${initLat}, ${initLon}`;
+        placeMarker(initLat, initLon);
+        map.setView([initLat, initLon], 12, { animate: false });
+        const cached = findCachedEntry(initLat, initLon);
+        if (cached) {
+            restoreEntry(cached);
+        } else {
+            runSearch(initLat, initLon);
+        }
+    }
+
+
+// Working on on-the-fly image exports with world files (.tfw) for georeferencing 
 
     // EPSG:3089 — NAD83 / Kentucky Single Zone (US survey feet)
     proj4.defs('EPSG:3089',
@@ -732,287 +1259,6 @@ const baseMap = L.esri.tiledMapLayer({
             .join('\n');
 
         return { url: `${base}?${params}`, tfw, width, height };
-    }
-
-    function formatDate(str) {
-        if (!str) return '—';
-        const d = new Date(str);
-        if (isNaN(d)) return str;
-        return d.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
-    }
-
-    function featureDate(feature) {
-        const p = feature.properties || {};
-        return new Date(p.datetime || p.start_datetime || 0);
-    }
-
-    function collectionTag(collection) {
-        if (!collection) return '';
-        const cls = collection.startsWith('dem') ? 'tag-dem' : 'tag-laz';
-        return `<span class="card-collection ${cls}">${collection}</span>`;
-    }
-
-    function attrRow(label, value) {
-        if (value == null || value === '') return '';
-        return `<div class="attr-row">
-            <span class="attr-label">${label}</span>
-            <span class="attr-value">${value}</span>
-        </div>`;
-    }
-
-    const DOWNLOAD_ASSET_TYPES = new Set([
-        'application/vnd.laszip',
-        'application/octet-stream',
-        'image/tiff',
-        'image/geotiff',
-        'application/geo+json',
-    ]);
-    const SKIP_ASSET_KEYS = new Set(['thumbnail', 'overview']);
-
-    function downloadLinks(assets) {
-        let entries = Object.entries(assets || {})
-            .filter(([key, asset]) =>
-                !SKIP_ASSET_KEYS.has(key) &&
-                (DOWNLOAD_ASSET_TYPES.has(asset.type) || key === 'data' || key === 'laz' || key === 'tif' || key === 'geotiff')
-            );
-
-        if (!entries.length) {
-            entries = Object.entries(assets || {})
-                .filter(([key]) => !SKIP_ASSET_KEYS.has(key) && key !== 'thumbnail');
-        }
-
-        if (!entries.length) return '';
-
-        const links = entries.map(([key, asset]) => {
-            const label = asset.title || key.toUpperCase();
-            return `<a class="dl-link" href="${asset.href}" target="_blank" rel="noopener">&#8595; ${label}</a>`;
-        }).join('');
-
-        return `<div class="card-downloads">${links}</div>`;
-    }
-
-    function stacCard(feature) {
-        const p = feature.properties || {};
-        const date = formatDate(p.datetime || p.start_datetime);
-        const hasThumbnail = feature.assets?.thumbnail && !feature.collection.includes('dem');
-        const thumbSrc = hasThumbnail
-            ? feature.assets.thumbnail.href
-            : (services[feature.collection] ? buildHillshadeUrl(feature.bbox, services[feature.collection]) : null);
-
-        const thumb = thumbSrc
-            ? `<img class="card-thumb" src="${thumbSrc}" alt="${feature.id}" loading="lazy">`
-            : `<div class="card-thumb-placeholder">&#9974;</div>`;
-
-        return `<div class="card">
-            ${thumb}
-            <div class="card-body">
-                <div class="card-title">${feature.id}</div>
-                ${collectionTag(feature.collection)}
-                <div class="card-attrs">
-                    ${attrRow('Date', date)}
-                    ${attrRow('GSD', p.gsd ? p.gsd + ' m' : null)}
-                    ${attrRow('Platform', p.platform)}
-                    ${attrRow('Instrument', p.instruments?.join(', '))}
-                    ${attrRow('EPSG', p['proj:epsg'] ?? 3089)}
-                    ${attrRow('Cloud %', p['eo:cloud_cover'] != null ? p['eo:cloud_cover'] + '%' : null)}
-                </div>
-                ${downloadLinks(feature.assets)}
-            </div>
-        </div>`;
-    }
-
-    // Each oblique item has North/South/East/West sub-objects with the actual shot data
-    const OBLIQUE_DIRS = ['North', 'South', 'East', 'West'];
-
-    function obliqueCard(data, dirLabel) {
-        if (!data) return '';
-
-        const thumbUrl = data.S3URL
-            ? `https://6hp4guqpwe.execute-api.us-west-2.amazonaws.com/cog/preview/200x200.jpg?url=${encodeURIComponent(data.S3URL)}&max_size=100`
-            : null;
-
-        const thumb = thumbUrl
-            ? `<img class="card-thumb" src="${thumbUrl}" alt="${data.ShotID || dirLabel}" loading="lazy">`
-            : `<div class="card-thumb-placeholder">&#128247;</div>`;
-
-        const dlLink = data.S3URL
-            ? `<div class="card-downloads"><a class="dl-link" href="${data.S3URL}" target="_blank" rel="noopener">&#8595; TIFF</a></div>`
-            : '';
-
-        const label = dirLabel || data.Direction || 'oblique';
-
-        return `<div class="card">
-            ${thumb}
-            <div class="card-body">
-                <div class="card-title">${data.ShotID || label}</div>
-                <span class="card-collection tag-oblique">${label}</span>
-                <div class="card-attrs">
-                    ${attrRow('Date', formatDate(data.FlightDate))}
-                    ${attrRow('Flight Line', data.FlightLine)}
-                    ${attrRow('Camera', data.Camera)}
-                    ${attrRow('Altitude', data.Altitude ? data.Altitude + ' ft' : null)}
-                    ${attrRow('GSD', data.GSD ? data.GSD + ' in' : null)}
-                </div>
-                ${dlLink}
-            </div>
-        </div>`;
-    }
-
-    function obliqueDirectionCards(item) {
-        // Try direction sub-objects first (North/South/East/West)
-        const dirCards = OBLIQUE_DIRS.map(dir => obliqueCard(item[dir], dir)).join('');
-        // Fall back to rendering the item itself if no direction sub-objects found
-        return dirCards.trim() ? dirCards : obliqueCard(item, item.Direction);
-    }
-
-    // ── JSON / debug ───────────────────────────────────────────────────────────
-    function escHtml(s) {
-        return String(s)
-            .replace(/&/g, '&amp;')
-            .replace(/</g, '&lt;')
-            .replace(/>/g, '&gt;')
-            .replace(/"/g, '&quot;');
-    }
-
-    function renderJsonTree(data, key = null, depth = 0) {
-        const keyHtml = key !== null
-            ? `<span class="j-key">${escHtml(JSON.stringify(key))}</span><span class="jt-punct">: </span>`
-            : '';
-
-        if (data === null)             return `<div class="jt-row">${keyHtml}<span class="j-null">null</span></div>`;
-        if (typeof data === 'boolean') return `<div class="jt-row">${keyHtml}<span class="j-bool">${data}</span></div>`;
-        if (typeof data === 'number')  return `<div class="jt-row">${keyHtml}<span class="j-num">${data}</span></div>`;
-        if (typeof data === 'string')  return `<div class="jt-row">${keyHtml}<span class="j-str">${escHtml(JSON.stringify(data))}</span></div>`;
-
-        const isArr = Array.isArray(data);
-        const entries = isArr ? data.map((v, i) => [i, v]) : Object.entries(data);
-        const [open, close] = isArr ? ['[', ']'] : ['{', '}'];
-
-        if (entries.length === 0) {
-            return `<div class="jt-row">${keyHtml}<span class="jt-bracket">${open}${close}</span></div>`;
-        }
-
-        const summary = `${keyHtml}<span class="jt-bracket">${open}</span><span class="jt-count">${entries.length} ${isArr ? 'items' : 'keys'}</span><span class="jt-bracket">${close}</span>`;
-        const children = entries.map(([k, v]) => renderJsonTree(v, k, depth + 1)).join('');
-        const openAttr = depth === 0 ? ' open' : '';
-
-        return `<details class="jt-node"${openAttr}>
-            <summary>${summary}</summary>
-            <div class="jt-children">${children}</div>
-        </details>`;
-    }
-
-    function debugPanel(title, data) {
-        return `<details class="debug-panel" open>
-            <summary>${escHtml(title)}</summary>
-            <div class="json-tree">${renderJsonTree(data)}</div>
-        </details>`;
-    }
-
-    function setStatus(msg, loading = false) {
-        const bar = document.getElementById('status-bar');
-        bar.innerHTML = loading ? `<span class="spinner"></span> ${msg}` : msg;
-    }
-
-    // ── Search ─────────────────────────────────────────────────────────────────
-    const submitBtn = document.getElementById('submit-btn');
-    const outputDiv = document.getElementById('output');
-    // const latInput  = document.getElementById('latitude');
-    // const lonInput  = document.getElementById('longitude');
-    const latlonInput = document.getElementById('latlon');
-    const stacApi    = 'https://spved5ihrl.execute-api.us-west-2.amazonaws.com';
-    const obliqueApi = 'https://kygisserver.ky.gov/arcgis/rest/services/Temp_Services/GetObliqueCentroids/GPServer/GetObliqueCentroids';
-
-    async function runSearch(lat, lon) {
-        submitBtn.disabled = true;
-        outputDiv.innerHTML = '';
-        setStatus('Searching catalog…', true);
-        lat = parseFloat(lat).toFixed(6);
-        lon = parseFloat(lon).toFixed(6);
-        history.replaceState(null, '', `?lat=${lat}&lon=${lon}`);
-        latlonInput.value = `${lat}, ${lon}`;
-        try {
-            const [stacResponse, obliqueResponse] = await Promise.all([
-                fetch(`${stacApi}/search?intersects={"type":"Point","coordinates":[${lon},${lat}]}`),
-                fetch(`${obliqueApi}/execute?latitude=${lat}&longitude=${lon}&f=json`)
-            ]);
-
-            const [stacData, obliqueData] = await Promise.all([
-                stacResponse.json(),
-                obliqueResponse.json()
-            ]);
-
-            // Sort by date ascending (earliest = left)
-            const stacFeatures = (stacData.features || [])
-                .slice()
-                .sort((a, b) => featureDate(a) - featureDate(b));
-
-            // value is { North: {...}, South: {...}, East: {...}, West: {...} }
-            const obliqueValue = obliqueData.results?.[0]?.value || {};
-            const obliqueDirCount = OBLIQUE_DIRS.filter(d => obliqueValue[d]).length;
-
-            // Draw bbox polygons on the map
-            drawBboxes(stacFeatures);
-
-            outputDiv.innerHTML = `
-            <section>
-                <div class="section-header">
-                    <span class="section-title">Elevation &amp; Lidar Items</span>
-                    <span class="count-badge">${stacFeatures.length}</span>
-                </div>
-                <div class="card-grid">
-                    ${stacFeatures.map(stacCard).join('') || '<p class="empty-state">No items found.</p>'}
-                </div>
-            </section>
-            <section>
-                <div class="section-header">
-                    <span class="section-title">Closest Oblique Imagery</span>
-                    <span class="count-badge">${obliqueDirCount} shots</span>
-                </div>
-                <div class="card-grid">
-                    ${OBLIQUE_DIRS.map(dir => obliqueCard(obliqueValue[dir], dir)).join('') || '<p class="empty-state">No oblique imagery found.</p>'}
-                </div>
-            </section>
-            <section class="debug-section">
-                <div class="section-header">
-                    <span class="section-title">Debug</span>
-                    <span class="count-badge">raw API responses</span>
-                </div>
-                ${debugPanel('STAC response', stacData)}
-                ${debugPanel('Oblique response', obliqueData)}
-            </section>`;
-
-            setStatus(`Found ${stacFeatures.length} catalog item(s) and ${obliqueDirCount} oblique shot(s).`);
-        } catch (err) {
-            console.error(err);
-            setStatus(`Error: ${err.message}`);
-        } finally {
-            submitBtn.disabled = false;
-        }
-    }
-
-    submitBtn.addEventListener('click', () => {
-        // const lat = parseFloat(latInput.value);
-        // const lon = parseFloat(lonInput.value);
-        const [lat, lon] = checkCoords(latlonInput.value);
-        console.log('Checked coords:', lat, lon);
-        if (isNaN(lat) || isNaN(lon)) { setStatus('Invalid coordinates.'); return; }
-        placeMarker(lat, lon);
-        map.panTo([lat, lon]);
-        runSearch(lat, lon);
-    });
-
-    // ── Init from URL params ───────────────────────────────────────────────────
-    const sp = new URLSearchParams(location.search);
-    const initLat = parseFloat(sp.get('lat'));
-    const initLon = parseFloat(sp.get('lon'));
-    if (!isNaN(initLat) && !isNaN(initLon)) {
-        // latInput.value = initLat;
-        // lonInput.value = initLon;
-        latlonInput.value = `${initLat}, ${initLon}`;
-        placeMarker(initLat, initLon);
-        map.setView([initLat, initLon], 12);
-        runSearch(initLat, initLon);
     }
 </script>
 </body>
