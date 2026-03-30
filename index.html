@@ -706,6 +706,22 @@ const baseMap = L.esri.tiledMapLayer({
         return `${base}?${params}`;
     }
 
+    function buildImageUrl(bbox, service) {
+        const base = `https://kyraster.ky.gov/arcgis/rest/services/ImageServices/${service}/ImageServer/exportImage`;
+        const params = new URLSearchParams({
+            bbox: bbox.join(','),
+            bboxSR: '4326',
+            size: '200,200',
+            imageSR: '3089',
+            time: '',
+            format: 'jpgpng',
+            pixelType: 'UNKNOWN',
+            interpolation: '+RSP_BilinearInterpolation',
+            f: 'image'
+        });
+        return `${base}?${params}`;
+    }
+
     function formatDate(str) {
         if (!str) return '—';
         const d = new Date(str);
@@ -815,8 +831,10 @@ const baseMap = L.esri.tiledMapLayer({
         const p = feature.properties || {};
         const date = formatDate(p.datetime || p.start_datetime);
         const hasThumbnail = feature.assets?.thumbnail && !feature.collection.includes('dem');
+        const href = feature.assets?.data?.href || feature.assets?.image?.href || feature.assets?.asset?.href || '';
         const thumbSrc = hasThumbnail
-            ? feature.assets.thumbnail.href
+            // ? feature.assets.thumbnail.href
+            ? `https://6hp4guqpwe.execute-api.us-west-2.amazonaws.com/cog/preview/200x200.jpg?url=${encodeURIComponent(href)}&max_size=100`
             : (services[feature.collection] ? buildHillshadeUrl(feature.bbox, services[feature.collection]) : null);
 
         const thumb = thumbSrc
@@ -1021,8 +1039,20 @@ const baseMap = L.esri.tiledMapLayer({
     function renderResults(stacData, obliqueData) {
         const stacFeatures = (stacData.features || [])
             .slice()
-            .sort((a, b) => featureDate(a) - featureDate(b));
+            .sort((a, b) => featureDate(a) - featureDate(b))
 
+        let ck = null
+        if (stacFeatures[0].collection === "orthos-phase1" && stacFeatures[1].collection === "orthos-phase1") {
+            if (stacFeatures[0].id.includes('_6')) {
+                ck = 1
+            } else if (stacFeatures[1].id.includes('_6')) {
+                ck = 0
+            }
+            if (ck !== null) {
+                stacFeatures.splice(ck, 1);
+            }
+        }
+        
         const obliqueValue = obliqueData.results?.[0]?.value || {};
         const obliqueDirCount = OBLIQUE_DIRS.filter(d => obliqueValue[d]).length;
 
