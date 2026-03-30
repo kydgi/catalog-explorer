@@ -358,6 +358,7 @@
         }
 
         .dl-link:hover { background: #1e3a5f; border-color: #60a5fa; }
+        button.dl-link { cursor: pointer; }
 
         /* ── Empty / error ── */
         .empty-state { color: #6b7280; font-size: 14px; padding: 20px 0; }
@@ -681,7 +682,7 @@ const baseMap = L.esri.tiledMapLayer({
     const nativeResolutionFt = {
         "dem-phase1": 5,
         "dem-phase2": 2,
-        "dem-phase3": 0.25   // 3 inches
+        "dem-phase3": 2
     };
 
     function buildHillshadeUrl(bbox, service) {
@@ -767,7 +768,7 @@ const baseMap = L.esri.tiledMapLayer({
         return key.toUpperCase();
     }
 
-    function downloadLinks(assets) {
+    function downloadLinks(assets, extraLinks = []) {
         let entries = Object.entries(assets || {})
             .filter(([key, asset]) =>
                 !SKIP_ASSET_KEYS.has(key) &&
@@ -794,7 +795,20 @@ const baseMap = L.esri.tiledMapLayer({
             ? `<a class="dl-link" href="${tfwEntry.href}" target="_blank" rel="noopener">&#8595; TFW</a>`
             : '';
 
-        return `<div class="card-downloads">${links}${tfwLink}</div>`;
+        return `<div class="card-downloads">${links}${tfwLink}${(extraLinks || []).join('')}</div>`;
+    }
+
+    function downloadDemTfw(projBbox, pixelSizeFt, filename) {
+        const [minX, minY, maxX, maxY] = projBbox;
+        const tfw = [
+            pixelSizeFt.toFixed(10),
+            '0.0000000000',
+            '0.0000000000',
+            (-pixelSizeFt).toFixed(10),
+            (minX + pixelSizeFt / 2).toFixed(10),
+            (maxY - pixelSizeFt / 2).toFixed(10)
+        ].join('\n');
+        downloadFile(tfw, filename);
     }
 
     function stacCard(feature) {
@@ -822,7 +836,14 @@ const baseMap = L.esri.tiledMapLayer({
                     ${attrRow('EPSG', p['proj:epsg'] ?? 3089)}
                     ${attrRow('Cloud %', p['eo:cloud_cover'] != null ? p['eo:cloud_cover'] + '%' : null)}
                 </div>
-                ${downloadLinks(feature.assets)}
+                ${(() => {
+                    const pxFt = nativeResolutionFt[feature.collection];
+                    const projBbox = p['proj:bbox'];
+                    const tfwBtn = (pxFt && projBbox)
+                        ? `<button class="dl-link" onclick='downloadDemTfw(${JSON.stringify(projBbox)}, ${pxFt}, "${feature.id.replace('.tif', '.tfw')}")'>&#8595; TFW</button>`
+                        : '';
+                    return downloadLinks(feature.assets, tfwBtn ? [tfwBtn] : []);
+                })()}
             </div>
         </div>`;
     }
@@ -1199,7 +1220,7 @@ const baseMap = L.esri.tiledMapLayer({
         const centerULX   = minX + pixelWidth  / 2;
         const centerULY   = maxY + pixelHeight / 2;  // maxY minus half-pixel
 
-        return [pixelWidth, 0.0, 0.0, pixelHeight, centerULX, centerULY]
+        return [Number(pixelWidth.toFixed(4)), 0.0, 0.0, Number(pixelHeight.toFixed(4)), centerULX, centerULY]
             .map(n => n.toFixed(10))
             .join('\n');
     }
