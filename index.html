@@ -268,11 +268,15 @@
             aspect-ratio: 1;
             background: #1e293b;
             display: flex;
+            flex-direction: column;
             align-items: center;
             justify-content: center;
+            text-align: center;
             color: #4b5563;
-            font-size: 28px;
+            font-size: 14px;
+            gap: 6px;
         }
+        .card-thumb-placeholder .placeholder-icon { font-size: 24px; }
 
         .card-body {
             padding: 12px;
@@ -496,7 +500,7 @@
             <input type="text" id="longitude" name="longitude" value="-84.5">
         </div> -->
         <div class="coord-group">   
-            <label for="latlon">Lat, Lon or X, Y (EPSG: 3089)</label>
+            <label for="latlon">Lat, Lon - X, Y - TileName</label>
                 <input type="text" id="latlon" name="latlon" placeholder="lat, lon or x, y">
         </div>
         <button id="submit-btn">Search</button>
@@ -622,9 +626,9 @@ const baseMap = L.esri.tiledMapLayer({
 
     // take a string input and return a valid lat or lon number, or null if invalid
     // also, take either xy, yx, lat/lon or lon/lat order and return in lat, lon order
-    function checkCoords (s) {
+    async function checkCoords (s) {
         console.log('Checking coords:', s);
-        if (typeof s === 'string') {
+        if (typeof s === 'string' && !s.includes('E')) {
             const parts = s.replace(/°/g, '').split(',').map(p => p.trim());
             console.log('Parsed parts:', parts);
             if (parts.length === 2) {
@@ -644,7 +648,16 @@ const baseMap = L.esri.tiledMapLayer({
                     }
                 }
             }
-        }
+        } else if (s.includes('N') && s.includes('E')) {
+            console.log('Detected N/E format');
+            const tile = await queryTileByName(s);
+            if (tile) {
+                return [tile.lat, tile.lon];
+            } else {
+                console.warn('Tile not found');
+            }
+        };
+        
         return null;
     }
 
@@ -870,7 +883,7 @@ const baseMap = L.esri.tiledMapLayer({
     const OBLIQUE_DIRS = ['North', 'South', 'East', 'West'];
 
     function imgError(el) {
-        el.outerHTML = '<div class="card-thumb-placeholder">&#128247;</div>';
+        el.outerHTML = '<div class="card-thumb-placeholder"><span class="placeholder-icon">&#128247;</span>No Preview Available</div>';
     }
 
     function obliqueCard(data, dirLabel) {
@@ -882,7 +895,7 @@ const baseMap = L.esri.tiledMapLayer({
 
         const thumb = thumbUrl
             ? `<img class="card-thumb" src="${thumbUrl}" alt="${data.ShotID || dirLabel}" loading="lazy" onerror="imgError(this)">`
-            : `<div class="card-thumb-placeholder">&#128247;</div>`;
+            : `<div class="card-thumb-placeholder"><span class="placeholder-icon">&#128247;</span>No Preview Available</div>`;
 
         const dlLink = data.S3URL
             ? `<div class="card-downloads"><a class="dl-link" href="${data.S3URL}" target="_blank" rel="noopener">&#8595; TIFF</a></div>`
@@ -1034,6 +1047,49 @@ const baseMap = L.esri.tiledMapLayer({
         drawBboxes(entry.stacData?.features || []);
         setStatus(`Restored query from ${new Date(entry.id).toLocaleString()}.`);
     }
+
+    // ── Tile name lookup ───────────────────────────────────────────────────────
+    const TILE_SERVICE = 'https://kygisserver.ky.gov/arcgis/rest/services/WGS84WM_Services/KY_Data_Tiles_WGS84WM/MapServer/0';
+
+    async function queryTileByName(name) {
+        const params = new URLSearchParams({
+            where: `NAME='${name.replace(/'/g, "''")}'`,
+            outFields: 'NAME',
+            returnGeometry: true,
+            outSR: '4326',
+            f: 'json'
+        });
+        console.log(`${TILE_SERVICE}/query?${params}`);
+        const res = await fetch(`${TILE_SERVICE}/query?${params}`);
+        const data = await res.json();
+        const feature = data.features?.[0];
+        if (!feature) return null;
+
+        const rings = feature.geometry?.rings;
+        if (!rings?.length) return null;
+
+        // Centroid as average of all ring vertices
+        let sumLon = 0, sumLat = 0, count = 0;
+        for (const ring of rings) {
+            for (const [lon, lat] of ring) {
+                sumLon += lon; sumLat += lat; count++;
+            }
+        }
+        return count ? { lat: sumLat / count, lon: sumLon / count, name } : null;
+    }
+
+    // queryTileByName('N143E121').then(tile => {
+    //     if (tile) {
+    //         console.log('Found tile:', tile);
+    //         placeMarker(tile.lat, tile.lon);
+    //         map.panTo([tile.lat, tile.lon], { animate: false });
+    //         latlonInput.value = `${tile.lat}, ${tile.lon}`;
+    //         runSearch(tile.lat, tile.lon);
+    //     } else {
+    //         console.warn('Tile not found');
+    //     }
+    // })
+    
 
     // ── Render ─────────────────────────────────────────────────────────────────
     function renderResults(stacData, obliqueData) {
@@ -1188,10 +1244,10 @@ const baseMap = L.esri.tiledMapLayer({
         URL.revokeObjectURL(a.href);
     });
 
-    submitBtn.addEventListener('click', () => {
+    submitBtn.addEventListener('click', async () => {
         // const lat = parseFloat(latInput.value);
         // const lon = parseFloat(lonInput.value);
-        const [lat, lon] = checkCoords(latlonInput.value);
+        const [lat, lon] = await checkCoords(latlonInput.value);
         console.log('Checked coords:', lat, lon);
         if (isNaN(lat) || isNaN(lon)) { setStatus('Invalid coordinates.'); return; }
         placeMarker(lat, lon);
