@@ -9,15 +9,45 @@
     <link href="https://fonts.googleapis.com/css2?family=Dosis:wght@400;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
     <style>
+        @font-face {
+            font-family: 'BellTopo Sans';
+            src: url('BellTopoSans/BellTopoSansRegular.woff') format('woff');
+            src: url('BellTopoSans/BellTopoSansRegular.woff2') format('woff2');
+            font-weight: 400;
+            font-style: normal;
+        }
+        @font-face {
+            font-family: 'BellTopo Sans';
+            src: url('BellTopoSans/BellTopoSansBold.woff') format('woff');
+            src: url('BellTopoSans/BellTopoSansBold.woff2') format('woff2');
+            font-weight: 700;
+            font-style: normal;
+        }
+        @font-face {
+            font-family: 'BellTopo Sans';
+            src: url('BellTopoSans/BellTopoSansItalic.woff') format('woff');
+            src: url('BellTopoSans/BellTopoSansItalic.woff2') format('woff2');
+            font-weight: 400;
+            font-style: italic;
+        }
+        @font-face {
+            font-family: 'BellTopo Sans';
+            src: url('BellTopoSans/BellTopoSansBoldItalic.woff') format('woff');
+            src: url('BellTopoSans/BellTopoSansBoldItalic.woff2') format('woff2');
+            font-weight: 700;
+            font-style: italic;
+        }
+
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
         body {
-            font-family: 'Dosis', sans-serif;
+            font-family: 'BellTopo Sans', serif;
             background: #1f2937;
             color: #f3f4f6;
             min-height: 100vh;
             display: flex;
             flex-direction: column;
+            font-size: 100%;
         }
 
         /* ── Header ── */
@@ -48,7 +78,7 @@
         }
 
         .brand-text { display: flex; flex-direction: column; line-height: 1.2; }
-        .brand-title { font-size: 16px; font-weight: 700; color: #f3f4f6; }
+        .brand-title { font-size: 1.25rem; font-weight: 700; color: #f3f4f6; }
         .brand-subtitle { font-size: 13px; font-weight: 400; color: #9ca3af; }
 
         .header-controls {
@@ -485,7 +515,7 @@
     <div class="header-brand">
         <img src="https://kygislicserv.ky.gov/mini-apps/oblique-service/images/logo-small.svg" alt="KY DGI" style="height:40px;width:auto;display:block;">
         <div class="brand-text">
-            <span class="brand-title">Catalog Explorer</span>
+            <span class="brand-title">KyFromAbove Catalog Explorer</span>
             <span class="brand-subtitle">Kentucky Division of Geographic Information</span>
         </div>
     </div>
@@ -1020,9 +1050,11 @@ const baseMap = L.esri.tiledMapLayer({
 
     function drawHistoryBboxes() {
         historyLayer.clearLayers();
+        const seen = new Set();
         loadHistory().forEach(entry => {
             (entry.stacData?.features || []).forEach(f => {
-                if (!f.bbox) return;
+                if (!f.bbox || seen.has(f.id)) return;
+                seen.add(f.id);
                 const [minX, minY, maxX, maxY] = f.bbox;
                 L.rectangle([[minY, minX], [maxY, maxX]], {
                     color: '#00a651',
