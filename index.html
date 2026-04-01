@@ -42,8 +42,8 @@
 
         body {
             font-family: 'BellTopo Sans', serif;
-            background: #1f2937;
-            color: #f3f4f6;
+            background: #f0f5f0;
+            color: #0f1a0f;
             min-height: 100vh;
             display: flex;
             flex-direction: column;
@@ -52,7 +52,7 @@
 
         /* ── Header ── */
         header {
-            background: #111827;
+            background: #e2ece2;
             border-bottom: 2px solid #00a651;
             padding: 0 24px;
             z-index: 1000;
@@ -64,7 +64,7 @@
             align-items: center;
             gap: 14px;
             padding: 14px 0 10px;
-            border-bottom: 1px solid #374151;
+            border-bottom: 1px solid #9dba9d;
         }
 
         .brand-badge {
@@ -78,8 +78,8 @@
         }
 
         .brand-text { display: flex; flex-direction: column; line-height: 1.2; }
-        .brand-title { font-size: 1.25rem; font-weight: 700; color: #f3f4f6; }
-        .brand-subtitle { font-size: 13px; font-weight: 400; color: #9ca3af; }
+        .brand-title { font-size: 1.25rem; font-weight: 700; color: #0f1a0f; }
+        .brand-subtitle { font-size: 13px; font-weight: 400; color: #3d5c3d; }
 
         .header-controls {
             display: flex;
@@ -94,15 +94,15 @@
         .coord-group label {
             font-size: 13px;
             font-weight: 700;
-            color: #9ca3af;
+            color: #3d5c3d;
             text-transform: uppercase;
             letter-spacing: 0.5px;
         }
 
         .coord-group input {
-            background: #1f2937;
-            border: 1px solid #374151;
-            color: #f3f4f6;
+            background: #f0f5f0;
+            border: 1px solid #9dba9d;
+            color: #0f1a0f;
             font-family: 'Dosis', sans-serif;
             font-size: 14px;
             font-weight: 600;
@@ -114,7 +114,7 @@
         }
 
         .coord-group input:focus { border-color: #00a651; }
-        .separator { color: #4b5563; font-size: 18px; }
+        .separator { color: #5a7a5a; font-size: 18px; }
 
         #submit-btn {
             background: #00a651;
@@ -132,12 +132,12 @@
 
         #submit-btn:hover   { background: #047857; }
         #submit-btn:active  { background: #064e3b; }
-        #submit-btn:disabled { background: #374151; color: #6b7280; cursor: not-allowed; }
+        #submit-btn:disabled { background: #9dba9d; color: #4e6e4e; cursor: not-allowed; }
 
         #clear-history-btn {
             background: transparent;
-            color: #6b7280;
-            border: 1px solid #374151;
+            color: #4e6e4e;
+            border: 1px solid #9dba9d;
             font-family: 'Dosis', sans-serif;
             font-size: 13px;
             font-weight: 700;
@@ -150,8 +150,8 @@
 
         #download-geojson-btn {
             background: transparent;
-            color: #6b7280;
-            border: 1px solid #374151;
+            color: #4e6e4e;
+            border: 1px solid #9dba9d;
             font-family: 'Dosis', sans-serif;
             font-size: 13px;
             font-weight: 700;
@@ -160,7 +160,14 @@
             cursor: pointer;
             transition: color 0.2s, border-color 0.2s;
         }
-        #download-geojson-btn:hover { color: #60a5fa; border-color: #60a5fa; }
+        #download-geojson-btn:hover { color: #1a6fa8; border-color: #1a6fa8; }
+
+        /* ── Output ── */
+
+        #output {
+            /* background: #d9e2ea; */
+            background-color: #d1ddd1;
+        }
 
         /* ── Map ── */
         #map {
@@ -173,7 +180,7 @@
         #map-resize-handle {
             width: 100%;
             height: 6px;
-            background: #374151;
+            background: #9dba9d;
             cursor: ns-resize;
             flex-shrink: 0;
             display: flex;
@@ -199,8 +206,8 @@
             bottom: 10px;
             left: 50%;
             transform: translateX(-50%);
-            background: rgba(17,24,39,0.85);
-            color: #9ca3af;
+            background: rgba(240,245,240,0.92);
+            color: #3d5c3d;
             font-family: 'Dosis', sans-serif;
             font-size: 12px;
             font-weight: 600;
@@ -213,12 +220,12 @@
 
         /* ── Status bar ── */
         #status-bar {
-            background: #0d1117;
-            border-bottom: 1px solid #374151;
+            background: #cce0cc;
+            border-bottom: 1px solid #9dba9d;
             padding: 8px 24px;
             font-size: 13px;
             font-weight: 600;
-            color: #9ca3af;
+            color: #3d5c3d;
             min-height: 34px;
             display: flex;
             align-items: center;
@@ -231,7 +238,7 @@
             display: inline-block;
             width: 12px;
             height: 12px;
-            border: 2px solid #374151;
+            border: 2px solid #9dba9d;
             border-top-color: #00a651;
             border-radius: 50%;
             animation: spin 0.7s linear infinite;
@@ -250,15 +257,18 @@
             margin-bottom: 16px;
         }
 
-        .section-title { font-size: 16px; font-weight: 700; color: #f3f4f6; }
+        .section-title { font-size: 16px; font-weight: 700; color: #0f1a0f; }
 
         .count-badge {
-            background: #374151;
-            color: #9ca3af;
-            font-size: 12px;
+            /* background: #9dba9d; */
+            color: #3d5c3d;
+            font-size: 14px;
             font-weight: 700;
-            padding: 2px 8px;
-            border-radius: 10px;
+            padding: 4px 8px;
+            /* border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center; */
         }
 
         section + section { margin-top: 36px; }
@@ -271,8 +281,8 @@
         }
 
         .card {
-            background: #111827;
-            border: 1px solid #374151;
+            background: #e7edf3;
+            border: 1px solid #9dba9d;
             border-radius: 8px;
             overflow: hidden;
             display: flex;
@@ -289,20 +299,20 @@
             width: 100%;
             aspect-ratio: 1;
             object-fit: cover;
-            background: #1e293b;
+            background: #d8e8d8;
             display: block;
         }
 
         .card-thumb-placeholder {
             width: 100%;
             aspect-ratio: 1;
-            background: #1e293b;
+            background: #d8e8d8;
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
             text-align: center;
-            color: #4b5563;
+            color: #5a7a5a;
             font-size: 14px;
             gap: 6px;
         }
@@ -319,13 +329,13 @@
         .card-title {
             font-size: 14px;
             font-weight: 700;
-            color: #f3f4f6;
+            color: #0f1a0f;
             line-height: 1.3;
         }
 
         .card-subtitle {
             font-size: 11px;
-            color: #6b7280;
+            color: #0f1a0f;
             word-break: break-all;
             line-height: 1.4;
         }
@@ -340,16 +350,16 @@
             align-self: flex-start;
         }
 
-        .tag-laz     { background: #064e3b; color: #34d399; }
-        .tag-dem     { background: #1e3a5f; color: #60a5fa; }
-        .tag-oblique { background: #4a1942; color: #f0abfc; }
+        .tag-laz     { background: #c8e8d4; color: #065f3d; }
+        .tag-dem     { background: #c0d8ec; color: #1a4a7a; }
+        .tag-oblique { background: #e8c8e8; color: #6b1a68; }
 
         .card-attrs { display: flex; flex-direction: column; gap: 4px; }
 
         .attr-row { display: flex; justify-content: space-between; gap: 8px; }
 
         .attr-label {
-            color: #6b7280;
+            color: #0f1a0f;
             font-weight: 700;
             text-transform: uppercase;
             font-size: 11px;
@@ -357,7 +367,7 @@
         }
 
         .attr-value {
-            color: #d1d5db;
+            color: #1a2e1a;
             font-weight: 600;
             font-size: 12px;
             text-align: right;
@@ -371,16 +381,16 @@
             gap: 6px;
             margin-top: 4px;
             padding-top: 8px;
-            border-top: 1px solid #374151;
+            border-top: 1px solid #9dba9d;
         }
 
         .dl-link {
             display: inline-flex;
             align-items: center;
             gap: 4px;
-            background: #1f2937;
-            border: 1px solid #374151;
-            color: #60a5fa;
+            background: #f0f5f0;
+            border: 1px solid #9dba9d;
+            color: #1a6fa8;
             font-family: 'Dosis', sans-serif;
             font-size: 11px;
             font-weight: 700;
@@ -391,24 +401,96 @@
             transition: background 0.15s, border-color 0.15s;
         }
 
-        .dl-link:hover { background: #1e3a5f; border-color: #60a5fa; }
+        .dl-link:hover { background: #c8dce8; border-color: #1a6fa8; }
         button.dl-link { cursor: pointer; }
 
+        /* ── Info button ── */
+        #info-btn {
+            background: transparent;
+            color: #4e6e4e;
+            border: 1px solid #9dba9d;
+            font-family: 'Dosis', sans-serif;
+            font-size: 13px;
+            font-weight: 700;
+            padding: 6px 14px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: color 0.2s, border-color 0.2s;
+        }
+        #info-btn:hover { color: #00a651; border-color: #00a651; }
+
+        /* ── Info panel ── */
+        .info-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+            margin-bottom: 36px;
+        }
+        @media (max-width: 640px) { .info-grid { grid-template-columns: 1fr; } }
+
+        .info-card {
+            background: #e2ece2;
+            border: 1px solid #9dba9d;
+            border-radius: 8px;
+            padding: 20px;
+        }
+        .info-card h3 {
+            font-size: 13px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: #00a651;
+            margin-bottom: 12px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid #9dba9d;
+        }
+        .info-card p, .info-card li {
+            font-size: 13px;
+            color: #1a2e1a;
+            line-height: 1.7;
+        }
+        .info-card ul {
+            padding-left: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+        .info-card .api-pill {
+            display: inline-block;
+            background: #c8e8d4;
+            color: #065f3d;
+            font-size: 11px;
+            font-weight: 700;
+            padding: 2px 8px;
+            border-radius: 10px;
+            margin-bottom: 6px;
+        }
+        .info-note {
+            margin-top: 10px;
+            padding: 10px 14px;
+            background: #d8e8d8;
+            border-left: 3px solid #00a651;
+            border-radius: 4px;
+            font-size: 12px;
+            color: #1a2e1a;
+            line-height: 1.6;
+        }
+
         /* ── Empty / error ── */
-        .empty-state { color: #6b7280; font-size: 14px; padding: 20px 0; }
+        .empty-state { color: #4e6e4e; font-size: 14px; padding: 20px 0; }
 
         /* ── Debug section ── */
         .debug-section {
             margin-top: 48px;
             padding-top: 24px;
-            border-top: 2px solid #374151;
+            border-top: 2px solid #9dba9d;
         }
 
         .debug-section .section-header { margin-bottom: 12px; }
 
         .debug-panel {
-            background: #0d1117;
-            border: 1px solid #374151;
+            background: #cce0cc;
+            border: 1px solid #9dba9d;
             border-radius: 8px;
             overflow: hidden;
             margin-bottom: 12px;
@@ -421,10 +503,10 @@
             padding: 10px 14px;
             cursor: pointer;
             font-weight: 700;
-            font-size: 13px;
-            color: #9ca3af;
-            background: #111827;
-            border-bottom: 1px solid #374151;
+            font-size: 15px;
+            color: #3d5c3d;
+            background: #e2ece2;
+            border-bottom: 1px solid #9dba9d;
             list-style: none;
             user-select: none;
         }
@@ -433,7 +515,7 @@
         .debug-panel > summary::before {
             content: '▶';
             font-size: 10px;
-            color: #4b5563;
+            color: #0f1a0f;
             transition: transform 0.15s;
         }
         .debug-panel[open] > summary::before { transform: rotate(90deg); }
@@ -441,10 +523,11 @@
         .json-tree {
             padding: 10px 16px;
             font-family: 'Courier New', Courier, monospace;
-            font-size: 12px;
+            font-size: 14px;
             line-height: 1.7;
-            color: #d1d5db;
+            color: #0f1a0f;
             overflow-x: auto;
+            background-color: #e7edf3;
         }
 
         .jt-node > summary {
@@ -458,11 +541,11 @@
             gap: 0;
         }
         .jt-node > summary::-webkit-details-marker { display: none; }
-        .jt-node > summary:hover { background: #1e293b; }
+        .jt-node > summary:hover { background: #d8e8d8; }
         .jt-node > summary::before {
             content: '▶';
             font-size: 9px;
-            color: #4b5563;
+            color: #0f1a0f;
             transition: transform 0.1s;
             display: inline-block;
             width: 14px;
@@ -472,7 +555,7 @@
 
         .jt-children {
             padding-left: 14px;
-            border-left: 1px solid #2d3748;
+            border-left: 1px solid #9dba9d;
             margin-left: 6px;
         }
 
@@ -488,25 +571,25 @@
             flex-shrink: 0;
         }
 
-        .j-str   { color: #34d399; }
-        .j-num   { color: #60a5fa; }
-        .j-bool  { color: #f59e0b; }
-        .j-null  { color: #6b7280; font-style: italic; }
-        .j-key   { color: #c084fc; }
-        .jt-bracket { color: #9ca3af; }
-        .jt-count   { color: #4b5563; font-size: 11px; margin: 0 4px; }
-        .jt-punct   { color: #6b7280; white-space: pre; }
+        .j-str   { color: #0f1a0f; }
+        .j-num   { color: #0f1a0f; }
+        .j-bool  { color: #0f1a0f; }
+        .j-null  { color: #0f1a0f; font-style: italic; }
+        .j-key   { color: #0f1a0f; }
+        .jt-bracket { color: #0f1a0f; }
+        .jt-count   { color: #0f1a0f; font-size: 13px; margin: 0 4px; }
+        .jt-punct   { color: #0f1a0f; white-space: pre; }
 
-        /* Leaflet dark overrides */
-        .leaflet-container { background: #1e293b; }
-        .leaflet-control-attribution { background: rgba(17,24,39,0.8) !important; color: #ccc !important; }
-        .leaflet-control-attribution a { color: #cecece !important; }
+        /* Leaflet light overrides */
+        .leaflet-container { background: #ddeadd; }
+        .leaflet-control-attribution { background: rgba(240,245,240,0.88) !important; color: #3d5c3d !important; }
+        .leaflet-control-attribution a { color: #5a4a3a !important; }
         .leaflet-control-zoom a {
-            background: #111827 !important;
-            color: #f3f4f6 !important;
-            border-color: #374151 !important;
+            background: #f0f5f0 !important;
+            color: #0f1a0f !important;
+            border-color: #9dba9d !important;
         }
-        .leaflet-control-zoom a:hover { background: #1f2937 !important; color: #00a651 !important; }
+        .leaflet-control-zoom a:hover { background: #e2ece2 !important; color: #00a651 !important; }
     </style>
 </head>
 <body>
@@ -530,12 +613,13 @@
             <input type="text" id="longitude" name="longitude" value="-84.5">
         </div> -->
         <div class="coord-group">   
-            <label for="latlon">Lat, Lon - X, Y - TileName</label>
-                <input type="text" id="latlon" name="latlon" placeholder="lat, lon or x, y">
+            <!-- <label for="latlon"></label> -->
+                <input type="text" id="latlon" name="latlon" placeholder="Lat, Lon or X, Y or TileName">
         </div>
         <button id="submit-btn">Search</button>
         <button id="clear-history-btn" style="display:none">Clear History</button>
-        <button id="download-geojson-btn" style="display:none">&#8595; GeoJSON</button>
+        <button id="download-geojson-btn" style="display:none">GeoJSON</button>
+        <button id="info-btn" style="display:none">About</button>
     </div>
 </header>
 
@@ -1123,6 +1207,56 @@ const baseMap = L.esri.tiledMapLayer({
     // })
     
 
+    // ── Info panel ─────────────────────────────────────────────────────────────
+    function renderInfo() {
+        outputDiv.innerHTML = `
+        <div class="info-grid">
+            <div class="info-card">
+                <h3>How to Use</h3>
+                <ul>
+                    <li>Click anywhere on the map to search that location.</li>
+                    <li>Or type a <strong>Lat, Lon</strong> coordinate pair into the search box and press <strong>Search</strong>.</li>
+                    <li>Results appear as cards below — one per data tile intersecting your point.</li>
+                    <li>Click a <strong>green bbox</strong> on the map to restore a previous query.</li>
+                    <li>Download source files directly from each card using the format buttons (LAZ, COG TIFF, TFW, etc.).</li>
+                </ul>
+                <div class="info-note">&#8505; After a search, use the <strong>&#9432; About</strong> button in the header to return to this page.</div>
+            </div>
+
+            <div class="info-card">
+                <h3>What's Being Queried</h3>
+                <span class="api-pill">STAC API</span>
+                <p>Each search queries the <strong>KY DGI STAC catalog</strong> for elevation and imagery tiles intersecting your point. Collections include:</p>
+                <ul>
+                    <li>Phase 1, 2 &amp; 3 <strong>LiDAR</strong> (LAZ point clouds)</li>
+                    <li>Phase 1, 2 &amp; 3 <strong>DEMs</strong> (bare-earth rasters)</li>
+                    <li>Phase 1, 2 &amp; 3 <strong>Orthos</strong> (aerial imagery)</li>
+                </ul>
+                <div style="margin-top:12px">
+                    <span class="api-pill">Oblique API</span>
+                    <p>A second query hits the <strong>KY GIS Server oblique imagery service</strong> to find the closest North, South, East, and West oblique shots to your point.</p>
+                </div>
+                <div class="info-note">&#8505; Raw API responses are shown in the <strong>Debug JSON</strong> section beneath each set of results.</div>
+            </div>
+
+            <div class="info-card">
+                <h3>Query History</h3>
+                <ul>
+                    <li>Results are <strong>cached in your browser</strong> (localStorage) so repeat queries don't hit the API.</li>
+                    <li>Previous search areas appear as <strong>semi-transparent green boxes</strong> on the map.</li>
+                    <li>Use <strong>Clear History</strong> to remove all cached results.</li>
+                    <li>Use <strong>&#8595; GeoJSON</strong> to download all queried tile footprints with asset links as a GeoJSON file.</li>
+                </ul>
+            </div>
+
+            <div class="info-card">
+                <h3>About This Tool</h3>
+                <p>The <strong>KY DGI Catalog Explorer</strong> is a lightweight, single-page tool for discovering Kentucky's statewide geospatial data holdings — including LiDAR point clouds, bare-earth DEMs, and aerial imagery — produced through the <strong>Kentucky Digital Geographic Information (DGI)</strong> program.</p>
+                <div class="info-note">&#8505; Data coverage and availability varies by phase and county. Not all tile types will appear for every location.</div>
+            </div>
+        </div>`;
+    }
+
     // ── Render ─────────────────────────────────────────────────────────────────
     function renderResults(stacData, obliqueData) {
         const stacFeatures = (stacData.features || [])
@@ -1144,11 +1278,14 @@ const baseMap = L.esri.tiledMapLayer({
         const obliqueValue = obliqueData.results?.[0]?.value || {};
         const obliqueDirCount = OBLIQUE_DIRS.filter(d => obliqueValue[d]).length;
 
+        infoBtn.style.display = '';
+        showingInfo = false;
+        infoBtn.textContent = 'About';
         outputDiv.innerHTML = `
         <section>
             <div class="section-header">
-                <span class="section-title">Elevation &amp; Lidar Items</span>
-                <span class="count-badge">${stacFeatures.length}</span>
+                <span class="section-title">Elevation &amp; Imagery Items</span>
+                <span class="count-badge">${stacFeatures.length} Downloads</span>
             </div>
             <div class="card-grid">
                 ${stacFeatures.map(stacCard).join('') || '<p class="empty-state">No items found.</p>'}
@@ -1157,7 +1294,7 @@ const baseMap = L.esri.tiledMapLayer({
         <section>
             <div class="section-header">
                 <span class="section-title">Closest Oblique Imagery</span>
-                <span class="count-badge">${obliqueDirCount} shots</span>
+                <span class="count-badge">${obliqueDirCount} Downloads</span>
             </div>
             <div class="card-grid">
                 ${OBLIQUE_DIRS.map(dir => obliqueCard(obliqueValue[dir], dir)).join('') || '<p class="empty-state">No oblique imagery found.</p>'}
@@ -1165,13 +1302,14 @@ const baseMap = L.esri.tiledMapLayer({
         </section>
         <section class="debug-section">
             <div class="section-header">
-                <span class="section-title">Debug</span>
-                <span class="count-badge">raw API responses</span>
+                <span class="section-title">API responses</span>
+                
             </div>
             ${debugPanel('STAC response', stacData)}
-            ${debugPanel('Oblique response', obliqueData)}
+            ${debugPanel('Oblique service response', obliqueData)}
         </section>`;
 
+        lastResultsHTML = outputDiv.innerHTML;
         return { stacFeatures, obliqueDirCount };
     }
 
@@ -1179,7 +1317,10 @@ const baseMap = L.esri.tiledMapLayer({
     const submitBtn = document.getElementById('submit-btn');
     const clearHistoryBtn = document.getElementById('clear-history-btn');
     const downloadGeoJsonBtn = document.getElementById('download-geojson-btn');
+    const infoBtn = document.getElementById('info-btn');
     const outputDiv = document.getElementById('output');
+    let lastResultsHTML = null;
+    let showingInfo = false;
     const latlonInput = document.getElementById('latlon');
     const stacApi    = 'https://spved5ihrl.execute-api.us-west-2.amazonaws.com';
     const obliqueApi = 'https://kygisserver.ky.gov/arcgis/rest/services/Temp_Services/GetObliqueCentroids/GPServer/GetObliqueCentroids';
@@ -1219,7 +1360,7 @@ const baseMap = L.esri.tiledMapLayer({
             saveToHistory(lat, lon, stacData, obliqueData);
             drawHistoryBboxes();
 
-            setStatus(`Found ${stacFeatures.length} catalog item(s) and ${obliqueDirCount} oblique shot(s).`);
+            setStatus(`Found ${stacFeatures.length} catalog items and ${obliqueDirCount} oblique shots.`);
         } catch (err) {
             console.error(err);
             setStatus(`Error: ${err.message}`);
@@ -1287,6 +1428,18 @@ const baseMap = L.esri.tiledMapLayer({
         runSearch(lat, lon);
     });
 
+    infoBtn.addEventListener('click', () => {
+        if (showingInfo) {
+            outputDiv.innerHTML = lastResultsHTML;
+            infoBtn.textContent = 'About';
+            showingInfo = false;
+        } else {
+            renderInfo();
+            infoBtn.textContent = 'Results';
+            showingInfo = true;
+        }
+    });
+
     // ── Init history ───────────────────────────────────────────────────────────
     drawHistoryBboxes();
     refreshClearBtn();
@@ -1312,6 +1465,9 @@ const baseMap = L.esri.tiledMapLayer({
         } else {
             runSearch(initLat, initLon);
         }
+    } else {
+        renderInfo();
+        showingInfo = true;
     }
 
 
