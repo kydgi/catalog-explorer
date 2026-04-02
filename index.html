@@ -78,7 +78,7 @@
         }
 
         .brand-text { display: flex; flex-direction: column; line-height: 1.2; }
-        .brand-title { font-size: 1.25rem; font-weight: 700; color: #0f1a0f; }
+        .brand-title { font-size: 1.4rem; font-weight: 700; color: #0f1a0f; }
         .brand-subtitle { font-size: 13px; font-weight: 400; color: #3d5c3d; }
 
         .header-controls {
@@ -139,28 +139,28 @@
             color: #4e6e4e;
             border: 1px solid #9dba9d;
             font-family: 'Dosis', sans-serif;
-            font-size: 13px;
+            font-size: 14px;
             font-weight: 700;
             padding: 6px 14px;
             border-radius: 4px;
             cursor: pointer;
             transition: color 0.2s, border-color 0.2s;
         }
-        #clear-history-btn:hover { color: #f87171; border-color: #f87171; }
+        #clear-history-btn:hover { color: #a50000; border-color: #a50000; background-color: #a5000015;}
 
         #download-geojson-btn {
             background: transparent;
             color: #4e6e4e;
             border: 1px solid #9dba9d;
             font-family: 'Dosis', sans-serif;
-            font-size: 13px;
+            font-size: 14px;
             font-weight: 700;
             padding: 6px 14px;
             border-radius: 4px;
             cursor: pointer;
             transition: color 0.2s, border-color 0.2s;
         }
-        #download-geojson-btn:hover { color: #1a6fa8; border-color: #1a6fa8; }
+        #download-geojson-btn:hover { color: #1a6fa8; border-color: #1a6fa8; background-color: #1a6fa815; }
 
         /* ── Output ── */
 
@@ -207,8 +207,8 @@
             left: 50%;
             transform: translateX(-50%);
             background: rgba(240,245,240,0.92);
-            color: #3d5c3d;
-            font-family: 'Dosis', sans-serif;
+            color: #ff009d;
+            font-family: 'BellTopo Sans', sans-serif;
             font-size: 12px;
             font-weight: 600;
             padding: 4px 12px;
@@ -223,7 +223,8 @@
             background: #cce0cc;
             border-bottom: 1px solid #9dba9d;
             padding: 8px 24px;
-            font-size: 13px;
+            padding-top:12px;
+            font-size: 14px;
             font-weight: 600;
             color: #3d5c3d;
             min-height: 34px;
@@ -257,14 +258,18 @@
             margin-bottom: 16px;
         }
 
-        .section-title { font-size: 16px; font-weight: 700; color: #0f1a0f; }
+        .section-title { 
+            font-size: 20px; 
+            font-weight: 700; 
+            color: #0f1a0f; 
+        }
 
         .count-badge {
             /* background: #9dba9d; */
             color: #3d5c3d;
             font-size: 14px;
             font-weight: 700;
-            padding: 4px 8px;
+            /* padding: 4px 8px; */
             /* border-radius: 10px;
             display: flex;
             align-items: center;
@@ -293,6 +298,23 @@
         .card:hover {
             border-color: #00a651;
             transform: translateY(-2px);
+        }
+
+        .card-thumb-wrap {
+            position: relative;
+        }
+        .card-thumb-spinner {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            pointer-events: none;
+        }
+        .card-thumb-spinner .spinner {
+            width: 28px;
+            height: 28px;
+            border-width: 3px;
         }
 
         .card-thumb {
@@ -410,14 +432,14 @@
             color: #4e6e4e;
             border: 1px solid #9dba9d;
             font-family: 'Dosis', sans-serif;
-            font-size: 13px;
+            font-size: 14px;
             font-weight: 700;
             padding: 6px 14px;
             border-radius: 4px;
             cursor: pointer;
             transition: color 0.2s, border-color 0.2s;
         }
-        #info-btn:hover { color: #00a651; border-color: #00a651; }
+        #info-btn:hover { color: #1a6fa8; border-color: #1a6fa8; background-color: #1a6fa815; }
 
         /* ── Info panel ── */
         .info-grid {
@@ -429,23 +451,23 @@
         @media (max-width: 640px) { .info-grid { grid-template-columns: 1fr; } }
 
         .info-card {
-            background: #e2ece2;
+            background: #f1f7fc;
             border: 1px solid #9dba9d;
             border-radius: 8px;
             padding: 20px;
         }
         .info-card h3 {
-            font-size: 13px;
+            font-size: 17px;
             font-weight: 700;
-            text-transform: uppercase;
+            /* text-transform: uppercase; */
             letter-spacing: 0.5px;
-            color: #00a651;
+            color: #0f1a0f;
             margin-bottom: 12px;
             padding-bottom: 8px;
             border-bottom: 1px solid #9dba9d;
         }
         .info-card p, .info-card li {
-            font-size: 13px;
+            font-size: 14px;
             color: #1a2e1a;
             line-height: 1.7;
         }
@@ -457,13 +479,13 @@
         }
         .info-card .api-pill {
             display: inline-block;
-            background: #c8e8d4;
-            color: #065f3d;
-            font-size: 11px;
+            /* background: #c8e8d4; */
+            /* color: #065f3d; */
+            font-size: 14px;
             font-weight: 700;
-            padding: 2px 8px;
+            /* padding: 2px 8px;
             border-radius: 10px;
-            margin-bottom: 6px;
+            margin-bottom: 6px; */
         }
         .info-note {
             margin-top: 10px;
@@ -596,7 +618,7 @@
 
 <header>
     <div class="header-brand">
-        <img src="https://kygislicserv.ky.gov/mini-apps/oblique-service/images/logo-small.svg" alt="KY DGI" style="height:40px;width:auto;display:block;">
+        <img src="https://kygislicserv.ky.gov/mini-apps/oblique-viewer/logo-small.svg" alt="KY DGI" style="height:50px;width:auto;display:block;">
         <div class="brand-text">
             <span class="brand-title">KyFromAbove Catalog Explorer</span>
             <span class="brand-subtitle">Kentucky Division of Geographic Information</span>
@@ -723,9 +745,15 @@ const baseMap = L.esri.tiledMapLayer({
         document.addEventListener('mouseup', onUp);
     });
 
-    map.on('click', (e) => {
-        const lat = e.latlng.lat.toFixed(6);
-        const lng = e.latlng.lng.toFixed(6);
+    map.on('click', async (e) => {
+        // const lat = e.latlng.lat.toFixed(6);
+        // const lng = e.latlng.lng.toFixed(6);
+        const [lat, lng] = await checkCoords(`${e.latlng.lat.toFixed(6)}, ${e.latlng.lng.toFixed(6)}`);
+        console.log('Checked coords:', lat, lng);
+        if (!lat || !lng) {
+            setStatus('Invalid coordinates.');
+            return;
+        }
         latlonInput.value = `${lat}, ${lng}`;
         placeMarker(lat, lng);
         const cached = findCachedEntry(parseFloat(lat), parseFloat(lng));
@@ -758,7 +786,8 @@ const baseMap = L.esri.tiledMapLayer({
                         // If both numbers are large, assume they're in EPSG:3089 (US survey feet) and convert to lat/lon
                         return project3089To4326(nums[0], nums[1]); // note the reversed order for x,y
                     } else {
-                        return null;
+                        console.warn('Tile not found');
+                        return [null, null];
                     }
                 }
             }
@@ -769,10 +798,11 @@ const baseMap = L.esri.tiledMapLayer({
                 return [tile.lat, tile.lon];
             } else {
                 console.warn('Tile not found');
+                return [null, null];
             }
         };
-        
-        return null;
+        console.warn('Tile not found');
+        return [null, null];
     }
 
     function project3089To4326(x, y) {
@@ -965,7 +995,7 @@ const baseMap = L.esri.tiledMapLayer({
             : (services[feature.collection] ? buildHillshadeUrl(feature.bbox, services[feature.collection]) : null);
 
         const thumb = thumbSrc
-            ? `<img class="card-thumb" src="${thumbSrc}" alt="${feature.id}" loading="lazy">`
+            ? `<div class="card-thumb-wrap"><div class="card-thumb-spinner"><div class="spinner"></div></div><img class="card-thumb" src="${thumbSrc}" alt="${feature.id}" loading="lazy" onload="this.previousElementSibling.remove()" onerror="imgError(this)"></div>`
             : `<div class="card-thumb-placeholder">&#9974;</div>`;
 
         return `<div class="card">
@@ -997,7 +1027,8 @@ const baseMap = L.esri.tiledMapLayer({
     const OBLIQUE_DIRS = ['North', 'South', 'East', 'West'];
 
     function imgError(el) {
-        el.outerHTML = '<div class="card-thumb-placeholder"><span class="placeholder-icon">&#128247;</span>No Preview Available</div>';
+        const target = el.closest('.card-thumb-wrap') || el;
+        target.outerHTML = '<div class="card-thumb-placeholder"><span class="placeholder-icon">&#128247;</span>No Preview Available</div>';
     }
 
     function obliqueCard(data, dirLabel) {
@@ -1008,7 +1039,7 @@ const baseMap = L.esri.tiledMapLayer({
             : null;
 
         const thumb = thumbUrl
-            ? `<img class="card-thumb" src="${thumbUrl}" alt="${data.ShotID || dirLabel}" loading="lazy" onerror="imgError(this)">`
+            ? `<div class="card-thumb-wrap"><div class="card-thumb-spinner"><div class="spinner"></div></div><img class="card-thumb" src="${thumbUrl}" alt="${data.ShotID || dirLabel}" loading="lazy" onload="this.previousElementSibling.remove()" onerror="imgError(this)"></div>`
             : `<div class="card-thumb-placeholder"><span class="placeholder-icon">&#128247;</span>No Preview Available</div>`;
 
         const dlLink = data.S3URL
@@ -1215,44 +1246,42 @@ const baseMap = L.esri.tiledMapLayer({
                 <h3>How to Use</h3>
                 <ul>
                     <li>Click anywhere on the map to search that location.</li>
-                    <li>Or type a <strong>Lat, Lon</strong> coordinate pair into the search box and press <strong>Search</strong>.</li>
-                    <li>Results appear as cards below — one per data tile intersecting your point.</li>
+                    <li>Type a <strong>Lat, Lon</strong> coordinate pair, tile name, e.g., <strong>N081E279</strong>, or <strong>X, Y</strong> in EPSG 3089 coordinates into the search box and press <strong>Search</strong>.</li>
+                    <li>Results on returned for assets intersecting your point.</li>
                     <li>Click a <strong>green bbox</strong> on the map to restore a previous query.</li>
                     <li>Download source files directly from each card using the format buttons (LAZ, COG TIFF, TFW, etc.).</li>
                 </ul>
-                <div class="info-note">&#8505; After a search, use the <strong>&#9432; About</strong> button in the header to return to this page.</div>
+                <div class="info-note">After a search, use the <strong>About</strong> button in the header to return to this page.</div>
             </div>
 
             <div class="info-card">
                 <h3>What's Being Queried</h3>
                 <span class="api-pill">STAC API</span>
-                <p>Each search queries the <strong>KY DGI STAC catalog</strong> for elevation and imagery tiles intersecting your point. Collections include:</p>
+                <p>Each search queries the <strong><a href="API Endpoint" target="_blank">KYFromAbove SpatioTemporal Asset Catalog</a></strong> for elevation and imagery tiles intersecting your point. Collections include:</p>
                 <ul>
-                    <li>Phase 1, 2 &amp; 3 <strong>LiDAR</strong> (LAZ point clouds)</li>
-                    <li>Phase 1, 2 &amp; 3 <strong>DEMs</strong> (bare-earth rasters)</li>
-                    <li>Phase 1, 2 &amp; 3 <strong>Orthos</strong> (aerial imagery)</li>
+                    <li>Phase 1, 2 &amp; 3 <strong>Lidar</strong> (LAZ point clouds), <strong>DEMs</strong> (bare-earth rasters), and <strong>Orthos</strong> (aerial imagery)</li>
                 </ul>
                 <div style="margin-top:12px">
-                    <span class="api-pill">Oblique API</span>
-                    <p>A second query hits the <strong>KY GIS Server oblique imagery service</strong> to find the closest North, South, East, and West oblique shots to your point.</p>
+                    <span class="api-pill">Closest Oblique API</span>
+                    <p>A second query hits the <strong>KyFromAbove Get Oblique Centroids service</strong> to find the closest North, South, East, and West oblique shots to your point.</p>
                 </div>
-                <div class="info-note">&#8505; Raw API responses are shown in the <strong>Debug JSON</strong> section beneath each set of results.</div>
+                <div class="info-note">Raw API responses are shown in the <strong>API Responses</strong> section beneath each set of results.</div>
             </div>
 
             <div class="info-card">
                 <h3>Query History</h3>
                 <ul>
-                    <li>Results are <strong>cached in your browser</strong> (localStorage) so repeat queries don't hit the API.</li>
-                    <li>Previous search areas appear as <strong>semi-transparent green boxes</strong> on the map.</li>
-                    <li>Use <strong>Clear History</strong> to remove all cached results.</li>
-                    <li>Use <strong>&#8595; GeoJSON</strong> to download all queried tile footprints with asset links as a GeoJSON file.</li>
+                    <li>Results are cached in your browser's Local Storage so repeat queries don't hit the API.</li>
+                    <li>Previous search areas appear as semi-transparent footprints on the map.</li>
+                    <li>Click the <strong>Clear History</strong> button to remove all cached results.</li>
+                    <li>Click the <strong>GeoJSON</strong> button to download all queried tile footprints with asset links as a GeoJSON file.</li>
                 </ul>
             </div>
 
             <div class="info-card">
                 <h3>About This Tool</h3>
-                <p>The <strong>KY DGI Catalog Explorer</strong> is a lightweight, single-page tool for discovering Kentucky's statewide geospatial data holdings — including LiDAR point clouds, bare-earth DEMs, and aerial imagery — produced through the <strong>Kentucky Digital Geographic Information (DGI)</strong> program.</p>
-                <div class="info-note">&#8505; Data coverage and availability varies by phase and county. Not all tile types will appear for every location.</div>
+                <p>The <strong>KyFromAbove Catalog Explorer</strong> is a lightweight, single-page tool for discovering Kentucky's statewide geospatial data holdings, including Lidar point clouds, bare-earth DEMs, and aerial imagery, produced through the <strong>Kentucky Division of Geographic Information (DGI)</strong>.</p>
+                <div class="info-note">Data coverage and availability varies by phase and county. Not all tile types will appear for every location.</div>
             </div>
         </div>`;
     }
@@ -1422,7 +1451,10 @@ const baseMap = L.esri.tiledMapLayer({
         // const lon = parseFloat(lonInput.value);
         const [lat, lon] = await checkCoords(latlonInput.value);
         console.log('Checked coords:', lat, lon);
-        if (isNaN(lat) || isNaN(lon)) { setStatus('Invalid coordinates.'); return; }
+        if (isNaN(lat) || isNaN(lon) ) { 
+            setStatus('Invalid coordinates.'); 
+            return; 
+        }
         placeMarker(lat, lon);
         map.panTo([lat, lon]);
         runSearch(lat, lon);
