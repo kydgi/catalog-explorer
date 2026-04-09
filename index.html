@@ -1037,7 +1037,7 @@ const baseMap = L.esri.tiledMapLayer({
         const href = feature.assets?.data?.href || feature.assets?.image?.href || feature.assets?.asset?.href || '';
         const thumbSrc = hasThumbnail
             // ? feature.assets.thumbnail.href
-            ? `https://6hp4guqpwe.execute-api.us-west-2.amazonaws.com/cog/preview/200x200.jpg?url=${encodeURIComponent(href)}&max_size=100`
+            ? `https://6hp4guqpwe.execute-api.us-west-2.amazonaws.com/cog/preview/200x200.jpg?url=${encodeURIComponent(href)}&max_size=100&color_formula=sigmoidal rgb 5 0.2, gamma rgb 1.2, saturation 2`
             : (services[feature.collection] ? buildHillshadeUrl(feature.bbox, services[feature.collection]) : null);
 
         const thumb = thumbSrc
