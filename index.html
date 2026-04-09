@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>KY DGI Catalog Explorer</title>
+    <title>KyFromAbove Catalog Explorer</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Dosis:wght@400;600;700&display=swap" rel="stylesheet">
@@ -49,6 +49,9 @@
             flex-direction: column;
             font-size: 100%;
         }
+
+        a { color: #1a6fa8; text-decoration: none; }
+        a:hover { text-decoration: underline; }
 
         /* ── Header ── */
         header {
@@ -603,7 +606,7 @@
         .jt-punct   { color: #0f1a0f; white-space: pre; }
 
         /* Leaflet light overrides */
-        .leaflet-container { background: #ddeadd; }
+        .leaflet-container { background: #ddeadd;}
         .leaflet-control-attribution { background: rgba(240,245,240,0.88) !important; color: #3d5c3d !important; }
         .leaflet-control-attribution a { color: #5a4a3a !important; }
         .leaflet-control-zoom a {
@@ -612,6 +615,14 @@
             border-color: #9dba9d !important;
         }
         .leaflet-control-zoom a:hover { background: #e2ece2 !important; color: #00a651 !important; }
+
+        footer {
+            background: #e2ece2;
+            border-top: 2px solid #00a651;
+            padding: 20px 24px;
+            display: flex;
+            justify-content: center;
+        }
     </style>
 </head>
 <body>
@@ -653,6 +664,9 @@
 <div id="status-bar">Ready — click the map or enter coordinates and press Search.</div>
 
 <main id="output"></main>
+<footer>
+    <a href="https://kygeonet.ky.gov/" target="_blank"><img src="https://kygislicserv.ky.gov/mini-apps/dsm-viewer/logo.svg" alt="KY DGI" style="height:120px;width:auto;display:block;"></a>
+</footer>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://unpkg.com/esri-leaflet@3.0.12/dist/esri-leaflet.js"></script>
@@ -674,6 +688,36 @@ const baseMap = L.esri.tiledMapLayer({
   maxZoom: 23 
 }).addTo(map);
 
+
+    // ── KY County overlay (non-interactive outlines) ───────────────────────────
+    const COUNTY_URL = 'https://services3.arcgis.com/ghsX9CKghMvyYjBU/arcgis/rest/services/Ky_County_Polygons_WM/FeatureServer/0';
+    const countyLayer = L.esri.featureLayer({
+        url: COUNTY_URL,
+        style: () => ({
+            color: '#5a7a5a',
+            weight: 1,
+            opacity: 0,
+            fillOpacity: 0,
+            interactive: false
+        })
+    }).addTo(map);
+
+    async function isInKentucky(lat, lng) {
+        try {
+            const params = new URLSearchParams({
+                geometry: JSON.stringify({ x: lng, y: lat, spatialReference: { wkid: 4326 } }),
+                geometryType: 'esriGeometryPoint',
+                spatialRel: 'esriSpatialRelIntersects',
+                returnCountOnly: 'true',
+                f: 'json'
+            });
+            const res = await fetch(`${COUNTY_URL}/query?${params}`);
+            const data = await res.json();
+            return (data.count ?? 0) > 0;
+        } catch {
+            return true; // fail open if the service is unreachable
+        }
+    }
 
     const markerIcon = L.divIcon({
         className: '',
@@ -746,12 +790,14 @@ const baseMap = L.esri.tiledMapLayer({
     });
 
     map.on('click', async (e) => {
-        // const lat = e.latlng.lat.toFixed(6);
-        // const lng = e.latlng.lng.toFixed(6);
         const [lat, lng] = await checkCoords(`${e.latlng.lat.toFixed(6)}, ${e.latlng.lng.toFixed(6)}`);
         console.log('Checked coords:', lat, lng);
         if (!lat || !lng) {
-            setStatus('Invalid coordinates.');
+            setStatus('Click within Kentucky to query.');
+            return;
+        }
+        if (!await isInKentucky(lat, lng)) {
+            setStatus('That location is outside Kentucky — click within the state boundary.');
             return;
         }
         latlonInput.value = `${lat}, ${lng}`;
@@ -1245,11 +1291,11 @@ const baseMap = L.esri.tiledMapLayer({
             <div class="info-card">
                 <h3>How to Use</h3>
                 <ul>
-                    <li>Click anywhere on the map to search that location.</li>
-                    <li>Type a <strong>Lat, Lon</strong> coordinate pair, tile name, e.g., <strong>N081E279</strong>, or <strong>X, Y</strong> in EPSG 3089 coordinates into the search box and press <strong>Search</strong>.</li>
-                    <li>Results on returned for assets intersecting your point.</li>
-                    <li>Click a <strong>green bbox</strong> on the map to restore a previous query.</li>
-                    <li>Download source files directly from each card using the format buttons (LAZ, COG TIFF, TFW, etc.).</li>
+                    <li>Click anywhere in Kentucky to search that location.</li>
+                    <li>Search by <strong>Lat, Lon</strong> coordinate pair, tile name, e.g., <strong>N081E279</strong>, or <strong>X, Y</strong> in EPSG 3089 coordinates.</li>
+                    <li>Results on returned for assets intersecting your point and a green footprint is added to the map showing the extent.</li>
+                    <li>Click a green extent on the map to restore a previous query.</li>
+                    <li>Download source files for each result using the format buttons (LAZ, COG TIFF, TFW, etc.).</li>
                 </ul>
                 <div class="info-note">After a search, use the <strong>About</strong> button in the header to return to this page.</div>
             </div>
@@ -1257,7 +1303,7 @@ const baseMap = L.esri.tiledMapLayer({
             <div class="info-card">
                 <h3>What's Being Queried</h3>
                 <span class="api-pill">STAC API</span>
-                <p>Each search queries the <strong><a href="API Endpoint" target="_blank">KYFromAbove SpatioTemporal Asset Catalog</a></strong> for elevation and imagery tiles intersecting your point. Collections include:</p>
+                <p>Each search queries the <strong><a href="https://kygeonet.ky.gov/stac/?.language=en" target="_blank">KYFromAbove SpatioTemporal Asset Catalog</a></strong> for elevation and imagery tiles intersecting your point. Collections include:</p>
                 <ul>
                     <li>Phase 1, 2 &amp; 3 <strong>Lidar</strong> (LAZ point clouds), <strong>DEMs</strong> (bare-earth rasters), and <strong>Orthos</strong> (aerial imagery)</li>
                 </ul>
@@ -1272,7 +1318,7 @@ const baseMap = L.esri.tiledMapLayer({
                 <h3>Query History</h3>
                 <ul>
                     <li>Results are cached in your browser's Local Storage so repeat queries don't hit the API.</li>
-                    <li>Previous search areas appear as semi-transparent footprints on the map.</li>
+                    <li>Previous search areas appear as semi-transparent green footprints on the map.</li>
                     <li>Click the <strong>Clear History</strong> button to remove all cached results.</li>
                     <li>Click the <strong>GeoJSON</strong> button to download all queried tile footprints with asset links as a GeoJSON file.</li>
                 </ul>
@@ -1293,7 +1339,7 @@ const baseMap = L.esri.tiledMapLayer({
             .sort((a, b) => featureDate(a) - featureDate(b))
 
         let ck = null
-        if (stacFeatures[0].collection === "orthos-phase1" && stacFeatures[1].collection === "orthos-phase1") {
+        if (stacFeatures.length >= 2 && stacFeatures[0].collection === "orthos-phase1" && stacFeatures[1].collection === "orthos-phase1") {
             if (stacFeatures[0].id.includes('_6')) {
                 ck = 1
             } else if (stacFeatures[1].id.includes('_6')) {
@@ -1374,15 +1420,49 @@ const baseMap = L.esri.tiledMapLayer({
         history.replaceState(null, '', `?lat=${lat}&lon=${lon}`);
         latlonInput.value = `${lat}, ${lon}`;
         try {
-            const [stacResponse, obliqueResponse] = await Promise.all([
+            const [stacResponse, obliqueResponse] = await Promise.allSettled([
                 fetch(`${stacApi}/search?intersects={"type":"Point","coordinates":[${lon},${lat}]}`),
                 fetch(`${obliqueApi}/execute?latitude=${lat}&longitude=${lon}&f=json`)
             ]);
 
-            const [stacData, obliqueData] = await Promise.all([
-                stacResponse.json(),
-                obliqueResponse.json()
-            ]);
+            let stacData = { features: [] };
+            let obliqueData = { results: [] };
+
+            if (stacResponse.status === 'fulfilled') {
+                const r = stacResponse.value;
+                if (!r.ok) {
+                    console.warn(`STAC API returned ${r.status}`);
+                } else {
+                    try {
+                        const json = await r.json();
+                        if (Array.isArray(json?.features)) stacData = json;
+                        else console.warn('Unexpected STAC response shape', json);
+                    } catch { console.warn('Failed to parse STAC response'); }
+                }
+            } else {
+                console.warn('STAC fetch failed:', stacResponse.reason);
+            }
+
+            if (obliqueResponse.status === 'fulfilled') {
+                const r = obliqueResponse.value;
+                if (!r.ok) {
+                    console.warn(`Oblique API returned ${r.status}`);
+                } else {
+                    try {
+                        const json = await r.json();
+                        if (json?.results != null) obliqueData = json;
+                        else console.warn('Unexpected oblique response shape', json);
+                    } catch { console.warn('Failed to parse oblique response'); }
+                }
+            } else {
+                console.warn('Oblique fetch failed:', obliqueResponse.reason);
+            }
+
+            if (!stacData.features.length && !obliqueData.results?.length) {
+                setStatus('No data found for this location.');
+                outputDiv.innerHTML = '<p class="empty-state">No catalog items or oblique imagery found for this location.</p>';
+                return;
+            }
 
             const { stacFeatures, obliqueDirCount } = renderResults(stacData, obliqueData);
             drawBboxes(stacFeatures);
@@ -1392,7 +1472,8 @@ const baseMap = L.esri.tiledMapLayer({
             setStatus(`Found ${stacFeatures.length} catalog items and ${obliqueDirCount} oblique shots.`);
         } catch (err) {
             console.error(err);
-            setStatus(`Error: ${err.message}`);
+            setStatus(`Search failed — ${err.message}`);
+            outputDiv.innerHTML = '<p class="empty-state">An unexpected error occurred. Check the console for details.</p>';
         } finally {
             searching = false;
             submitBtn.disabled = false;
@@ -1447,13 +1528,15 @@ const baseMap = L.esri.tiledMapLayer({
     });
 
     submitBtn.addEventListener('click', async () => {
-        // const lat = parseFloat(latInput.value);
-        // const lon = parseFloat(lonInput.value);
         const [lat, lon] = await checkCoords(latlonInput.value);
         console.log('Checked coords:', lat, lon);
-        if (isNaN(lat) || isNaN(lon) ) { 
-            setStatus('Invalid coordinates.'); 
-            return; 
+        if (!lat || !lon || isNaN(lat) || isNaN(lon)) {
+            setStatus('Could not resolve coordinates — enter a valid KY lat/lon, tile name, or EPSG:3089 pair.');
+            return;
+        }
+        if (!await isInKentucky(lat, lon)) {
+            setStatus('Those coordinates are outside Kentucky.');
+            return;
         }
         placeMarker(lat, lon);
         map.panTo([lat, lon]);
