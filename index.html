@@ -66,9 +66,9 @@
 
             /* Typography */
             --font-ui:        'Dosis', sans-serif;
-            --font-body:      'BellTopo Sans', serif;
+            --font-body:      'BellTopo Sans', sans-serif;
 
-            /* Spacing scale — use these instead of arbitrary px values */
+            /* Spacing scale  */
             --space-xs:  4px;
             --space-sm:  8px;
             --space-md:  12px;
@@ -76,7 +76,7 @@
             --space-xl:  24px;
             --space-2xl: 36px;
 
-            /* Font-size scale — use these instead of arbitrary px values */
+            /* Font-size scale */
             --font-size-xs:   11px;  /* badges, small action labels */
             --font-size-sm:   12px;  /* tags, secondary code text */
             --font-size-md:   13px;  /* form labels, metadata */
@@ -722,9 +722,8 @@
         mapMaxHeight: Math.round(window.innerHeight * 0.85),
 
         // Storage and export
-        historyKey:      'kydgi-catalog-history', // localStorage key for query history cache
-        geojsonFilename: 'kydgi-queries.geojson', // filename for the GeoJSON export download
-        maxExportDim:    4096,                    // max pixel dimension for raster image exports
+        historyKey:   'kydgi-catalog-history', // localStorage key for query history cache
+        maxExportDim: 4096,                    // max pixel dimension for raster image exports
     };
 
     // ── Map initialization ─────────────────────────────────────────────────────
@@ -1030,6 +1029,19 @@
     }
 
     /**
+     * Builds a timestamped GeoJSON export filename.
+     * Format: kydgi-queries-YYYYMMDDHH-Nitems.geojson
+     * @param {number} count - Number of features being exported
+     * @returns {string}
+     */
+    function buildGeoJsonFilename(count) {
+        const d = new Date();
+        const pad = n => String(n).padStart(2, '0');
+        const stamp = `${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}${pad(d.getHours())}`;
+        return `KyFromAbove-Catalog-Explorer-${stamp}-${count}tiles.geojson`;
+    }
+
+    /**
      * Triggers a browser download of a plain-text string as a named file.
      * @param {string} content  - File contents
      * @param {string} filename - Suggested download filename
@@ -1063,26 +1075,6 @@
         downloadFile(tfw, filename);
     }
 
-    /**
-     * Projects a WGS84 bbox to EPSG:3089 and computes world file parameters
-     * (pixel size, rotation, upper-left center) for a raster of the given dimensions.
-     * Shared by buildWorldFile and exportImageService to ensure consistent georeference values.
-     * @param {number[]} bbox   - [minLon, minLat, maxLon, maxLat] in WGS84
-     * @param {number}   width  - Output image width in pixels
-     * @param {number}   height - Output image height in pixels
-     * @returns {{ pixelWidth: number, pixelHeight: number, centerULX: number, centerULY: number }}
-     */
-    function calcWorldFileParams(bbox, width, height) {
-        const [minLon, minLat, maxLon, maxLat] = bbox;
-        const [minX, minY] = proj4('EPSG:4326', 'EPSG:3089', [minLon, minLat]);
-        const [maxX, maxY] = proj4('EPSG:4326', 'EPSG:3089', [maxLon, maxLat]);
-        const pixelWidth  =  (maxX - minX) / width;
-        const pixelHeight = -(maxY - minY) / height; // negative — Y decreases down the image
-        const centerULX   = minX + pixelWidth  / 2;
-        const centerULY   = maxY + pixelHeight / 2;  // maxY minus half-pixel
-        return { pixelWidth, pixelHeight, centerULX, centerULY };
-    }
-
     // ── URL builders ───────────────────────────────────────────────────────────
 
     /**
@@ -1113,68 +1105,6 @@
         return `${base}?${params}`;
     }
 
-    /**
-     * Builds a TIFF world file (.tfw) string for a WGS84 bbox projected to EPSG:3089.
-     * TFW line order: pixelWidth, rowRotation, colRotation, pixelHeight (neg), centerULX, centerULY.
-     * @param {number[]} bbox   - [minLon, minLat, maxLon, maxLat] in WGS84
-     * @param {number}   width  - Image width in pixels
-     * @param {number}   height - Image height in pixels
-     * @returns {string} Newline-separated TFW content
-     */
-    function buildWorldFile(bbox, width, height) {
-        const { pixelWidth, pixelHeight, centerULX, centerULY } = calcWorldFileParams(bbox, width, height);
-        return [pixelWidth, 0.0, 0.0, pixelHeight, centerULX, centerULY]
-            .map(n => n.toFixed(10))
-            .join('\n');
-    }
-
-    /**
-     * Builds an export URL and matching TFW string for a kyraster.ky.gov ImageServer service.
-     * Output dimensions are computed at native resolution then capped at CONFIG.maxExportDim
-     * to prevent excessively large requests.
-     * @param {number[]} bbox            - [minLon, minLat, maxLon, maxLat] in WGS84
-     * @param {string}   image           - ImageServer path segment (e.g. "ElevationServices")
-     * @param {string}   service         - ImageServer service name
-     * @param {number}   [pixelSizeFt=2] - Native pixel size in US survey feet
-     * @returns {{ url: string, tfw: string, width: number, height: number }}
-     */
-    function exportImageService(bbox, image, service, pixelSizeFt = 2) {
-        const [minLon, minLat, maxLon, maxLat] = bbox;
-        const [minX, minY] = proj4('EPSG:4326', 'EPSG:3089', [minLon, minLat]);
-        const [maxX, maxY] = proj4('EPSG:4326', 'EPSG:3089', [maxLon, maxLat]);
-
-        // Compute pixel dimensions at native resolution, scaled down if they exceed the cap
-        const rawW  = Math.round((maxX - minX) / pixelSizeFt);
-        const rawH  = Math.round((maxY - minY) / pixelSizeFt);
-        const scale  = Math.min(1, CONFIG.maxExportDim / Math.max(rawW, rawH, 1));
-        const width  = Math.max(1, Math.round(rawW * scale));
-        const height = Math.max(1, Math.round(rawH * scale));
-
-        const base = `https://kyraster.ky.gov/arcgis/rest/services/${image}/${service}/ImageServer/exportImage`;
-        const params = new URLSearchParams({
-            bbox: bbox.join(','),
-            bboxSR: '4326',
-            size: `${width},${height}`,
-            imageSR: '3089',
-            time: '',
-            format: 'tiff',
-            pixelType: 'UNKNOWN',
-            interpolation: '+RSP_BilinearInterpolation',
-            renderingRule: JSON.stringify({
-                rasterFunction: 'Hillshade',
-                rasterFunctionArguments: { HillshadeType: 1, ZFactor: 1.0 },
-                variableName: 'DEM'
-            }),
-            f: 'image'
-        });
-
-        const { pixelWidth, pixelHeight, centerULX, centerULY } = calcWorldFileParams(bbox, width, height);
-        const tfw = [pixelWidth, 0.0, 0.0, pixelHeight, centerULX, centerULY]
-            .map(n => n.toFixed(10))
-            .join('\n');
-
-        return { url: `${base}?${params}`, tfw, width, height };
-    }
 
     // ── Render helpers ─────────────────────────────────────────────────────────
 
@@ -1620,6 +1550,8 @@
     function clearHistory() {
         localStorage.removeItem(CONFIG.historyKey);
         historyLayer.clearLayers();
+        bboxLayer.clearLayers();
+        window.history.replaceState(null, '', window.location.pathname);
         refreshClearBtn();
     }
 
@@ -1662,7 +1594,7 @@
         placeMarker(entry.lat, entry.lon);
         map.panTo([entry.lat, entry.lon], { animate: false });
         latlonInput.value = `${entry.lat}, ${entry.lon}`;
-        history.replaceState(null, '', `?lat=${entry.lat}&lon=${entry.lon}`);
+        window.history.replaceState(null, '', `?lat=${entry.lat}&lon=${entry.lon}`);
         renderResults(entry.stacData, entry.obliqueData);
         drawBboxes(entry.stacData?.features || []);
         setStatus(`Restored query from ${new Date(entry.id).toLocaleString()}.`);
@@ -1836,32 +1768,81 @@
         setStatus('Query history cleared.');
     });
 
-    // Export all cached STAC tile footprints with asset URLs as a GeoJSON file
+    // Export all cached queries as a GeoJSON FeatureCollection.
+    // Each Feature represents one query location; its geometry is a bbox Polygon
+    // covering all STAC tiles returned for that search. Properties contain a nested
+    // stac_items array (one object per tile with asset download URLs) and an oblique
+    // object keyed by cardinal direction (North/South/East/West).
     downloadGeoJsonBtn.addEventListener('click', () => {
-        const features = loadHistory().flatMap(e => (e.stacData?.features || []).map(f => {
-            const assetLinks = {};
-            for (const [key, asset] of Object.entries(f.assets || {})) {
-                if (asset?.href) assetLinks[`asset_${key}`] = asset.href;
+        const features = loadHistory().map(entry => {
+            const stacFeatures = entry.stacData?.features || [];
+
+            // Compute the union bbox across all STAC tiles for this query
+            let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+            for (const f of stacFeatures) {
+                if (!f.bbox) continue;
+                const [x0, y0, x1, y1] = f.bbox;
+                if (x0 < minX) minX = x0;
+                if (y0 < minY) minY = y0;
+                if (x1 > maxX) maxX = x1;
+                if (y1 > maxY) maxY = y1;
             }
+            const hasBbox = isFinite(minX);
+
+            // One object per STAC tile: key metadata + flat asset URL map
+            const stacItems = stacFeatures.map(f => ({
+                id:               f.id,
+                collection:       f.collection,
+                collection_label: collectionLabels[f.collection] || f.collection,
+                datetime:         f.properties?.datetime || null,
+                
+                assets: Object.fromEntries(
+                    Object.entries(f.assets || {})
+                        .filter(([, a]) => a?.href)
+                        .map(([k, a]) => [k, a.href])
+                ),
+                raw:              f,
+            }));
+
+            // One object per available cardinal direction
+            const obliqueValue = entry.obliqueData?.results?.[0]?.value || {};
+            const oblique = {};
+            for (const dir of OBLIQUE_DIRS) {
+                const shot = obliqueValue[dir];
+                if (!shot) continue;
+                oblique[dir] = {
+                    url:         shot.S3URL    || null,
+                    shot_id:     shot.ShotID   || null,
+                    flight_date: new Date(shot.FlightDate) || null,
+                    raw:         shot
+                    // flight_line: shot.FlightLine || null,
+                    // camera:      shot.Camera    || null,
+                    // altitude_ft: shot.Altitude  || null,
+                    // gsd_in:      shot.GSD       || null
+                };
+            }
+
             return {
                 type: 'Feature',
-                id: f.id,
-                geometry: f.geometry,
-                bbox: f.bbox,
+                ...(hasBbox ? { bbox: [minX, minY, maxX, maxY] } : {}),
+                geometry: hasBbox
+                    ? { type: 'Polygon', coordinates: [[[minX, minY], [maxX, minY], [maxX, maxY], [minX, maxY], [minX, minY]]] }
+                    : { type: 'Point', coordinates: [entry.lon, entry.lat] },
                 properties: {
-                    ...f.properties,
-                    collection: f.collection,
-                    collection_label: collectionLabels[f.collection] || f.collection,
-                    stac_id: f.id,
-                    ...assetLinks
+                    lat:        entry.lat,
+                    lon:        entry.lon,
+                    queried_at: new Date(entry.id).toISOString(),
+                    stac_items: stacItems,
+                    oblique
                 }
             };
-        }));
+        });
+
         const geojson = { type: 'FeatureCollection', features };
         const blob = new Blob([JSON.stringify(geojson, null, 2)], { type: 'application/geo+json' });
         const a = document.createElement('a');
         a.href = URL.createObjectURL(blob);
-        a.download = CONFIG.geojsonFilename;
+        a.download = buildGeoJsonFilename(features.length);
         a.click();
         URL.revokeObjectURL(a.href);
     });
