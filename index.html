@@ -88,7 +88,11 @@
         }
 
         /* ── Reset & base ── */
-        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        *, *::before, *::after { 
+            box-sizing: border-box; 
+            margin: 0; 
+            padding: 0; 
+        }
 
         body {
             font-family: var(--font-body);
@@ -130,9 +134,21 @@
             letter-spacing: 1px;
         }
 
-        .brand-text { display: flex; flex-direction: column; line-height: 1.2; }
-        .brand-title { font-size: 1.4rem; font-weight: 700; color: var(--text); }
-        .brand-subtitle { font-size: var(--font-size-md); font-weight: 400; color: var(--text-mid); }
+        .brand-text { 
+            display: flex; 
+            flex-direction: column; 
+            line-height: 1.2; 
+        }
+        .brand-title { 
+            font-size: 1.4rem; 
+            font-weight: 700; 
+            color: var(--text); 
+        }
+        .brand-subtitle { 
+            font-size: var(--font-size-md); 
+            font-weight: 400; 
+            color: var(--text-mid); 
+        }
 
         .header-controls {
             display: flex;
@@ -142,7 +158,11 @@
             flex-wrap: wrap;
         }
 
-        .coord-group { display: flex; align-items: center; gap: 6px; }
+        .coord-group { 
+            display: flex; 
+            align-items: center; 
+            gap: 6px; 
+        }
 
         .coord-group label {
             font-size: var(--font-size-md);
@@ -166,8 +186,13 @@
             transition: border-color 0.2s;
         }
 
-        .coord-group input:focus { border-color: var(--green); }
-        .separator { color: var(--text-muted); font-size: var(--font-size-xl); }
+        .coord-group input:focus { 
+            border-color: var(--green); 
+        }
+        .separator { 
+            color: var(--text-muted); 
+            font-size: var(--font-size-xl); 
+        }
 
         /* ── Toolbar buttons ──────────────────────────────────────────────────────
            Shared base styles. Specific overrides below by ID.
@@ -195,9 +220,17 @@
             padding: 7px 20px;
             transition: background 0.2s;
         }
-        #submit-btn:hover    { background: var(--green-dark); }
-        #submit-btn:active   { background: var(--green-darker); }
-        #submit-btn:disabled { background: var(--green-muted); color: var(--text-light); cursor: not-allowed; }
+        #submit-btn:hover    { 
+            background: var(--green-dark); 
+        }
+        #submit-btn:active   { 
+            background: var(--green-darker); 
+        }
+        #submit-btn:disabled { 
+            background: var(--green-muted); 
+            color: var(--text-light); 
+            cursor: not-allowed; 
+        }
 
         /* Secondary actions — ghost buttons with muted border */
         #clear-history-btn,
@@ -211,11 +244,19 @@
         }
 
         /* Destructive action turns red on hover */
-        #clear-history-btn:hover { color: #a50000; border-color: #a50000; background-color: #a5000015; }
+        #clear-history-btn:hover { 
+            color: #a50000; 
+            border-color: #a50000; 
+            background-color: #a5000015; 
+        }
 
         /* Neutral actions turn blue on hover */
         #download-geojson-btn:hover,
-        #info-btn:hover { color: var(--blue); border-color: var(--blue); background-color: #1a6fa815; }
+        #info-btn:hover { 
+            color: var(--blue); 
+            border-color: var(--blue); 
+            background-color: #1a6fa815; 
+        }
 
         /* ── Output ── */
         #output {
@@ -244,7 +285,9 @@
         }
 
         #map-resize-handle:hover,
-        #map-resize-handle.dragging { background: var(--green); }
+        #map-resize-handle.dragging { 
+            background: var(--green); 
+        }
 
         #map-resize-handle::after {
             content: '';
@@ -304,7 +347,10 @@
         @keyframes spin { to { transform: rotate(360deg); } }
 
         /* ── Main content ── */
-        main { flex: 1; padding: var(--space-xl); }
+        main { 
+            flex: 1; 
+            padding: var(--space-xl); 
+        }
 
         .section-header {
             display: flex;
@@ -325,7 +371,9 @@
             font-weight: 700;
         }
 
-        section + section { margin-top: var(--space-2xl); }
+        section + section { 
+            margin-top: var(--space-2xl); 
+        }
 
         /* ── Card grid ── */
         .card-grid {
@@ -389,7 +437,9 @@
             font-size: var(--font-size-base);
             gap: 6px;
         }
-        .card-thumb-placeholder .placeholder-icon { font-size: var(--font-size-3xl); }
+        .card-thumb-placeholder .placeholder-icon { 
+            font-size: var(--font-size-3xl); 
+        }
 
         .card-body {
             padding: var(--space-md);
@@ -424,12 +474,27 @@
             align-self: flex-start;
         }
 
-        .tag-laz { background: #c8e8d4; color: #065f3d; }
-        .tag-dem { background: #c0d8ec; color: #1a4a7a; }
+        .tag-laz { 
+            background: #c8e8d4; 
+            color: #065f3d; 
+        }
+        .tag-dem { 
+            background: #c0d8ec; 
+            color: #1a4a7a; 
+        }
 
-        .card-attrs { display: flex; flex-direction: column; gap: var(--space-xs); }
+        .card-attrs { 
+            display: flex; 
+            flex-direction: 
+            column; gap: 
+            var(--space-xs); 
+        }
 
-        .attr-row { display: flex; justify-content: space-between; gap: var(--space-sm); }
+        .attr-row { 
+            display: flex; 
+            justify-content: space-between; 
+            gap: var(--space-sm); 
+        }
 
         .attr-label {
             color: var(--text);
@@ -474,7 +539,10 @@
             transition: background 0.15s, border-color 0.15s;
         }
 
-        .dl-link:hover { background: #c8dce8; border-color: var(--blue); }
+        .dl-link:hover { 
+            background: #c8dce8; 
+            border-color: var(--blue); 
+        }
         button.dl-link { cursor: pointer; }
 
         /* ── Info / About panel — static content cards ── */
@@ -484,7 +552,11 @@
             gap: var(--space-xl);
             margin-bottom: var(--space-2xl);
         }
-        @media (max-width: 640px) { .info-grid { grid-template-columns: 1fr; } }
+        @media (max-width: 640px) { 
+            .info-grid { 
+                grid-template-columns: 1fr; 
+            } 
+        }
 
         .info-card {
             background: #f1f7fc;
@@ -529,7 +601,11 @@
         }
 
         /* ── Empty / error state ── */
-        .empty-state { color: var(--text-light); font-size: var(--font-size-base); padding: 20px 0; }
+        .empty-state { 
+            color: var(--text-mid); 
+            font-size: var(--font-size-lg); 
+            padding: 20px 0; 
+        }
 
         /* ── Debug section — collapsible raw API response panels ── */
         .debug-section {
@@ -538,7 +614,9 @@
             border-top: 2px solid var(--green-muted);
         }
 
-        .debug-section .section-header { margin-bottom: var(--space-md); }
+        .debug-section .section-header { 
+            margin-bottom: var(--space-md); 
+        }
 
         .debug-panel {
             background: var(--green-status);
@@ -593,8 +671,12 @@
             align-items: baseline;
             gap: 0;
         }
-        .jt-node > summary::-webkit-details-marker { display: none; }
-        .jt-node > summary:hover { background: var(--green-light); }
+        .jt-node > summary::-webkit-details-marker { 
+            display: none; 
+        }
+        .jt-node > summary:hover { 
+            background: var(--green-light); 
+        }
         .jt-node > summary::before {
             content: '▶';
             font-size: 9px;
@@ -627,22 +709,44 @@
         .j-str   { color: var(--text); }
         .j-num   { color: var(--text); }
         .j-bool  { color: var(--text); }
-        .j-null  { color: var(--text); font-style: italic; }
+        .j-null  { 
+            color: var(--text); 
+            font-style: italic; 
+        }
         .j-key   { color: var(--text); }
         .jt-bracket { color: var(--text); }
-        .jt-count   { color: var(--text); font-size: var(--font-size-md); margin: 0 var(--space-xs); }
-        .jt-punct   { color: var(--text); white-space: pre; }
+        .jt-count   { 
+            color: var(--text); 
+            font-size: var(--font-size-md); 
+            margin: 0 var(--space-xs); 
+        }
+        .jt-punct   { 
+            color: var(--text); 
+            white-space: pre; 
+        }
 
         /* ── Leaflet overrides — keep the map consistent with the app theme ── */
-        .leaflet-container { background: #ddeadd; }
-        .leaflet-control-attribution { background: rgba(240,245,240,0.88) !important; color: var(--text-mid) !important; }
-        .leaflet-control-attribution a { color: #5a4a3a !important; }
+        .leaflet-container { 
+            background: #ddeadd; 
+            font-family: var(--font-ui) !important;
+        }
+        .leaflet-control-attribution { 
+            background: rgba(240,245,240,0.88) !important; 
+            color: var(--text-mid) !important; 
+            font-size: var(--font-size-md) !important;
+        }
+        .leaflet-control-attribution a { 
+            color: var(--green-mid) !important; 
+        }
         .leaflet-control-zoom a {
             background: var(--green-bg-pale) !important;
             color: var(--text) !important;
             border-color: var(--green-muted) !important;
         }
-        .leaflet-control-zoom a:hover { background: var(--green-bg) !important; color: var(--green) !important; }
+        .leaflet-control-zoom a:hover { 
+            background: var(--green-bg) !important; 
+            color: var(--green) !important; 
+        }
 
         /* ── Footer ── */
         footer {
@@ -1681,7 +1785,14 @@
         } catch (err) {
             console.error(err);
             setStatus(`Search failed — ${err.message}`);
-            outputDiv.innerHTML = '<p class="empty-state">An unexpected error occurred. Check the console for details.</p>';
+            if (err.message.includes('Failed to fetch')) {
+                outputDiv.innerHTML = '<p class="empty-state">Network error: failed to reach the API. Check your connection and try again.</p>';
+            } else if (err.message.includes('quota')) {
+                outputDiv.innerHTML = `<p class="empty-state font-size-lg">Likely your browser has exceeded its local storage capacity. Download the GeoJSON to save results and then Clear History.</p>`;
+
+            } else   {
+                outputDiv.innerHTML = '<p class="empty-state">An unexpected error occurred. Check the console for details.</p>';
+            }
         } finally {
             searching = false;
             submitBtn.disabled = false;
@@ -1788,7 +1899,7 @@
                 if (y1 > maxY) maxY = y1;
             }
             const hasBbox = isFinite(minX);
-
+            const stacLinks = {};
             // One object per STAC tile: key metadata + flat asset URL map
             const stacItems = stacFeatures.map(f => ({
                 id:               f.id,
@@ -1799,14 +1910,22 @@
                 assets: Object.fromEntries(
                     Object.entries(f.assets || {})
                         .filter(([, a]) => a?.href)
-                        .map(([k, a]) => [k, a.href])
+                        .map(([k, a]) => {
+                            if (!SKIP_ASSET_KEYS.has(k)) {
+                                const label = assetFormatLabel(k, a);
+                                stacLinks[`${f.id} ${label}`] = a.href;
+                            }
+                            return [k, a.href];
+                        })
                 ),
                 raw:              f,
+                tilename:         f.id.split('_')[0] 
             }));
 
             // One object per available cardinal direction
             const obliqueValue = entry.obliqueData?.results?.[0]?.value || {};
             const oblique = {};
+            const obliqueLinks = {};
             for (const dir of OBLIQUE_DIRS) {
                 const shot = obliqueValue[dir];
                 if (!shot) continue;
@@ -1820,20 +1939,28 @@
                     // altitude_ft: shot.Altitude  || null,
                     // gsd_in:      shot.GSD       || null
                 };
+                if (shot.S3URL) {
+                    obliqueLinks[`${dir}`] = shot.S3URL;
+                }
             }
 
             return {
                 type: 'Feature',
-                ...(hasBbox ? { bbox: [minX, minY, maxX, maxY] } : {}),
+                // ...(hasBbox ? { bbox: [minX, minY, maxX, maxY] } : {}),
                 geometry: hasBbox
                     ? { type: 'Polygon', coordinates: [[[minX, minY], [maxX, minY], [maxX, maxY], [minX, maxY], [minX, minY]]] }
                     : { type: 'Point', coordinates: [entry.lon, entry.lat] },
                 properties: {
-                    lat:        entry.lat,
-                    lon:        entry.lon,
+                    // lat:        entry.lat,
+                    // lon:        entry.lon,
+                    tilename:    stacItems[0]?.tilename || null,
+                    clicked_lat_lon: [Number(entry.lat), Number(entry.lon)],
                     queried_at: new Date(entry.id).toISOString(),
-                    stac_items: stacItems,
-                    oblique
+                    ...stacLinks,
+                    ...obliqueLinks,
+                    // oblique_items: oblique,
+                    // stac_items: stacItems,
+                    
                 }
             };
         });
