@@ -815,6 +815,7 @@
         tileService:   'https://kygisserver.ky.gov/arcgis/rest/services/WGS84WM_Services/KY_Data_Tiles_WGS84WM/MapServer/0',
         countyUrl:     'https://services3.arcgis.com/ghsX9CKghMvyYjBU/arcgis/rest/services/Ky_County_Polygons_WM/FeatureServer/0',
         basemapUrl:    'https://kygisserver.ky.gov/arcgis/rest/services/WGS84WM_Services/Ky_TCM_Base_WGS84WM/MapServer',
+        copcViewer:    'https://kygeonet.ky.gov/copc/viewer/index.html',
 
         // Kentucky geographic bounds and coordinate validation ranges
         kyBounds:   [[36.497, -89.572], [39.147, -81.965]],
@@ -1385,7 +1386,12 @@
         if (!entries.length) return '';
 
         const links = entries.map(([key, asset]) => {
-            if (key !== 'metadata') return `<a class="dl-link" href="${asset.href}" target="_blank" rel="noopener">&#8595; ${assetFormatLabel(key, asset)}</a>`;
+            if (key === 'metadata') return '';
+            const label = assetFormatLabel(key, asset);
+            const dlLink = `<a class="dl-link" href="${asset.href}" target="_blank" rel="noopener">&#8595; ${label}</a>`;
+            if (label !== 'COPC LAZ') return dlLink;
+            const viewerUrl = `${CONFIG.copcViewer}?url=${encodeURIComponent(asset.href)}`;
+            return `${dlLink}<a class="dl-link" href="${viewerUrl}" target="_blank" rel="noopener">View LAZ</a>`;
         }).join('');
 
         const tfwEntry = Object.values(assets).find(a => a?.href && a.href.split('?')[0].toLowerCase().endsWith('.tfw'));
